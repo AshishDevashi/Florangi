@@ -1,0 +1,40 @@
+import { NextResponse } from "next/server";
+import { db } from "@/server/db";
+import { getCurrentUser } from "@/server/auth/session";
+import { verifyPrivateFileSignature } from "@/server/storage/local";
+import { getStorageProvider } from "@/server/storage";
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get("key") ?? "";
+  const expires = Number(url.searchParams.get("expires"));
+  const signature = url.searchParams.get("sig") ?? "";
+  if (!key || !verifyPrivateFileSignature(key, expires, signature)) {
+    return new Response(null, { status: 404 });
+  }
+
+  const photo = await db.replacementPhoto.findFirst({
+    where: { provider: "local", key },
+    include: { request: { select: { customerId: true } } },
+  });
+  if (!photo) return new Response(null, { status: 404 });
+
+  const user = await getCurrentUser();
+  if (!user || (user.role !== "ADMIN" && user.id !== photo.request.customerId)) {
+    return new Response(null, { status: 404 });
+  }
+
+  try {
+    const bytes = await getStorageProvider(photo.provider).readPrivate(key);
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: {
+        "Content-Type": photo.mimeType,
+        "Content-Length": String(bytes.byteLength),
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return new Response(null, { status: 404 });
+  }
+}

@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: florangi
+      POSTGRES_PASSWORD: florangi_dev
+      POSTGRES_DB: florangi
+    ports:
+      - "5433:5432"
+    volumes:
+      - florangi-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U florangi -d florangi"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  florangi-postgres:
