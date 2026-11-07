@@ -40,7 +40,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
               <Link className="grid gap-3 sm:grid-cols-[1fr_auto]" href={`/admin/orders/${order.id}`}>
                 <div>
                   <div className="flex flex-wrap items-baseline gap-2"><h2 className="font-medium underline">{order.orderNumber}</h2><span className="text-xs text-[var(--muted)]">{order.fulfillmentStatus.replaceAll("_", " ")}</span>{order.awaitingApprovalHours >= 24 && <span className="text-xs font-semibold text-amber-900">Waiting {order.awaitingApprovalHours}h</span>}</div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{order.customer.name ?? order.customer.email} · {formatIndiaDateTime(order.createdAt)}</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">{order.firstName} {order.lastName} · {order.email} · {formatIndiaDateTime(order.createdAt)}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">{order.paymentMethod === "COD" ? "COD" : "Online"} · {order.paymentStatus.replaceAll("_", " ")} · {order.lines.map((line) => `${line.productName} × ${line.quantity}`).join(", ")}</p>
                 </div>
                 <p className="font-medium sm:text-right">{formatPaise(order.totalPaise)}</p>

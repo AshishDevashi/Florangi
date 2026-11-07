@@ -2,7 +2,6 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { requireCustomer } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { calculateShippingFeePaise, calculateSubtotalPaise, priceUnit } from "@/server/domain/pricing";
 import { parseMeasurementRanges, validateMeasurements, type CustomMeasurements } from "@/server/domain/measurements";
@@ -19,7 +18,6 @@ const cartLineSchema = z.object({
   acceptedQuoteVersion: z.string().max(128).optional().nullable(),
 });
 
-export type CartLineInput = z.infer<typeof cartLineSchema>;
 export type QuotedCartLine = {
   lineId?: string;
   productId: string;
@@ -67,8 +65,7 @@ export async function quoteCartLines(
   if (!parsed.success) throw new RangeError("Cart lines contain invalid product identifiers or quantities.");
 
   const settings = await getEffectiveSettings(clock);
-  const shippingSetting = settings.get("shipping_fee_paise");
-  const shippingFeePaise = readSettingAmount(shippingSetting?.value, "shipping_fee_paise", "amountPaise");
+  const shippingFeePaise = readSettingAmount(settings.get("shipping_fee_paise")?.value, "shipping_fee_paise", "amountPaise");
   const shippingFreeThresholdPaise = readSettingAmount(settings.get("shipping_free_threshold_paise")?.value, "shipping_free_threshold_paise", "amountPaise");
   const measurementSetting = settings.get("measurement_ranges");
   const productIds = [...new Set(parsed.data.map((line) => line.productId))];
@@ -231,186 +228,4 @@ export async function quoteCartLines(
     hasBlockingLines: lines.some((line) => line.state === "UNAVAILABLE" || line.state === "INVALID"),
     needsAcceptance: lines.some((line) => line.state === "PRICE_CHANGED"),
   };
-}
-
-async function getOrCreateCustomerCart(userId: string) {
-  return db.cart.upsert({ where: { userId }, create: { userId }, update: {} });
-}
-
-export async function getCustomerCart(clock: Clock = systemClock) {
-  const user = await requireCustomer();
-  const cart = await getOrCreateCustomerCart(user.id);
-  const storedLines = await db.cartLine.findMany({ where: { cartId: cart.id }, orderBy: { createdAt: "asc" } });
-  const quote = await quoteCartLines(storedLines.map((line) => ({
-    lineId: line.id,
-    productId: line.productId,
-    variantId: line.variantId,
-    measurements: line.measurements ?? undefined,
-    quantity: line.quantity,
-    acceptedUnitPaise: line.acceptedUnitPaise,
-    acceptedQuoteVersion: line.quoteVersion,
-  })), clock);
-  return { ...quote, cartId: cart.id };
-}
-
-export async function addCustomerCartLine(input: unknown, clock: Clock = systemClock) {
-  const user = await requireCustomer();
-  const parsed = cartLineSchema.omit({ lineId: true }).parse(input);
-  const quote = await quoteCartLines([{ ...parsed, lineId: "new-line" }], clock);
-  const line = quote.lines[0];
-  if (!line || line.state !== "AVAILABLE" || line.unitPricePaise === undefined || !line.quoteVersion) {
-    throw new RangeError(line?.message ?? "This cart item cannot be added.");
-  }
-  const cart = await getOrCreateCustomerCart(user.id);
-  if (line.type === "DESIGNER_DRESS") {
-    const existing = await db.cartLine.findFirst({ where: { cartId: cart.id, productId: line.productId, variantId: line.variantId } });
-    if (existing) {
-      if (existing.acceptedUnitPaise !== line.unitPricePaise || existing.quoteVersion !== line.quoteVersion) {
-        throw new RangeError("This size's quote changed. Review your cart before adding another.");
-      }
-      const quantity = existing.quantity + parsed.quantity;
-      if (quantity > (line.available ?? 0)) throw new RangeError("Requested quantity exceeds available stock.");
-      return db.cartLine.update({
-        where: { id: existing.id },
-        data: { quantity, acceptedUnitPaise: line.unitPricePaise, quoteVersion: line.quoteVersion },
-      });
-    }
-  }
-  return db.cartLine.create({
-    data: {
-      cartId: cart.id,
-      productId: parsed.productId,
-      variantId: parsed.variantId ?? null,
-      measurements: parsed.measurements as object | undefined,
-      quantity: parsed.quantity,
-      acceptedUnitPaise: line.unitPricePaise,
-      quoteVersion: line.quoteVersion,
-    },
-  });
-}
-
-export async function updateCustomerCartLine(lineId: string, quantity: number, clock: Clock = systemClock) {
-  const user = await requireCustomer();
-  const cart = await getOrCreateCustomerCart(user.id);
-  const stored = await db.cartLine.findFirst({ where: { id: lineId, cartId: cart.id } });
-  if (!stored) return null;
-  const quote = await quoteCartLines([{
-    productId: stored.productId,
-    variantId: stored.variantId,
-    measurements: stored.measurements ?? undefined,
-    quantity,
-    acceptedUnitPaise: stored.acceptedUnitPaise,
-    acceptedQuoteVersion: stored.quoteVersion,
-  }], clock);
-  const line = quote.lines[0];
-  if (!line || line.state !== "AVAILABLE" || line.unitPricePaise === undefined || !line.quoteVersion) {
-    throw new RangeError(line?.message ?? "Review this cart item before changing its quantity.");
-  }
-  return db.cartLine.update({
-    where: { id: stored.id },
-    data: { quantity, acceptedUnitPaise: line.unitPricePaise, quoteVersion: line.quoteVersion },
-  });
-}
-
-export async function removeCustomerCartLine(lineId: string) {
-  const user = await requireCustomer();
-  const cart = await getOrCreateCustomerCart(user.id);
-  const result = await db.cartLine.deleteMany({ where: { id: lineId, cartId: cart.id } });
-  return result.count > 0;
-}
-
-export async function clearCustomerCart() {
-  const user = await requireCustomer();
-  const cart = await getOrCreateCustomerCart(user.id);
-  await db.cartLine.deleteMany({ where: { cartId: cart.id } });
-  return true;
-}
-
-export async function acceptCustomerCartQuotes(clock: Clock = systemClock) {
-  const user = await requireCustomer();
-  const cart = await getOrCreateCustomerCart(user.id);
-  const storedLines = await db.cartLine.findMany({ where: { cartId: cart.id }, orderBy: { createdAt: "asc" } });
-  const quote = await quoteCartLines(storedLines.map((line) => ({
-    lineId: line.id,
-    productId: line.productId,
-    variantId: line.variantId,
-    measurements: line.measurements ?? undefined,
-    quantity: line.quantity,
-    acceptedUnitPaise: line.acceptedUnitPaise,
-    acceptedQuoteVersion: line.quoteVersion,
-  })), clock);
-  if (quote.hasBlockingLines) throw new RangeError("Remove unavailable items or correct invalid measurements before accepting prices.");
-  await db.$transaction(quote.lines.map((line) => db.cartLine.update({
-    where: { id: line.lineId },
-    data: { acceptedUnitPaise: line.unitPricePaise, quoteVersion: line.quoteVersion },
-  })));
-  return getCustomerCart(clock);
-}
-
-export async function mergeGuestCart(input: unknown, clock: Clock = systemClock) {
-  const user = await requireCustomer();
-  const parsed = z.array(cartLineSchema.omit({ lineId: true })).max(100).parse(input);
-  const guestLines = parsed.map((line, index) => ({
-    ...line,
-    quantity: line.variantId ? 1 : line.quantity,
-    lineId: `guest-${index}`,
-  }));
-  const quote = await quoteCartLines(guestLines, clock, { checkCombinedVariantQuantity: false });
-  if (quote.hasBlockingLines || quote.needsAcceptance) {
-    return { merged: false, requiresReview: true, quote };
-  }
-
-  const cart = await getOrCreateCustomerCart(user.id);
-  const excess: Array<{ lineId?: string; productId: string; requested: number; merged: number }> = [];
-  await db.$transaction(async (transaction) => {
-    for (const [index, line] of quote.lines.entries()) {
-      if (!line.quoteVersion || line.unitPricePaise === undefined) continue;
-      if (line.type === "DESIGNER_DRESS") {
-        const requestedQuantity = parsed[index].quantity;
-        const existing = await transaction.cartLine.findFirst({
-          where: { cartId: cart.id, productId: line.productId, variantId: line.variantId },
-        });
-        const existingQuantity = existing?.quantity ?? 0;
-        const capacity = Math.max(0, (line.available ?? 0) - existingQuantity);
-        const mergedQuantity = Math.min(requestedQuantity, capacity);
-        if (requestedQuantity > mergedQuantity) {
-          excess.push({ lineId: line.lineId, productId: line.productId, requested: requestedQuantity, merged: mergedQuantity });
-        }
-        if (mergedQuantity === 0) continue;
-        if (existing) {
-          await transaction.cartLine.update({
-            where: { id: existing.id },
-            data: {
-              quantity: existingQuantity + mergedQuantity,
-              acceptedUnitPaise: line.unitPricePaise,
-              quoteVersion: line.quoteVersion,
-            },
-          });
-        } else {
-          await transaction.cartLine.create({
-            data: {
-              cartId: cart.id,
-              productId: line.productId,
-              variantId: line.variantId,
-              quantity: mergedQuantity,
-              acceptedUnitPaise: line.unitPricePaise,
-              quoteVersion: line.quoteVersion,
-            },
-          });
-        }
-      } else {
-        await transaction.cartLine.create({
-          data: {
-            cartId: cart.id,
-            productId: line.productId,
-            quantity: 1,
-            measurements: line.measurements as object,
-            acceptedUnitPaise: line.unitPricePaise,
-            quoteVersion: line.quoteVersion,
-          },
-        });
-      }
-    }
-  });
-  return { merged: true, requiresReview: false, excess, cart: await getCustomerCart(clock) };
 }

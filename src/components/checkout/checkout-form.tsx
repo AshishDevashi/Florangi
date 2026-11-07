@@ -50,14 +50,18 @@ type CheckoutQuote = {
 };
 
 const addressFields = [
-  { name: "fullName", label: "Full name", autocomplete: "name" },
-  { name: "phone", label: "Phone number", autocomplete: "tel" },
   { name: "line1", label: "Address line 1", autocomplete: "address-line1" },
   { name: "line2", label: "Address line 2 (optional)", autocomplete: "address-line2", optional: true },
   { name: "landmark", label: "Landmark (optional)", autocomplete: "off", optional: true },
   { name: "city", label: "City", autocomplete: "address-level2" },
   { name: "state", label: "State", autocomplete: "address-level1" },
   { name: "pinCode", label: "PIN code", autocomplete: "postal-code" },
+] as const;
+
+const contactFields = [
+  { name: "firstName", label: "First name", autocomplete: "given-name" },
+  { name: "lastName", label: "Last name", autocomplete: "family-name" },
+  { name: "phoneNumber", label: "Phone number", autocomplete: "tel" },
 ] as const;
 
 function readGuestCart(): GuestCartLine[] {
@@ -74,9 +78,10 @@ export function CheckoutForm() {
   const router = useRouter();
   const idempotencyKey = useRef<string | null>(null);
   const [values, setValues] = useState({
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
     email: "",
-    fullName: "",
-    phone: "",
     line1: "",
     line2: "",
     landmark: "",
@@ -93,45 +98,26 @@ export function CheckoutForm() {
   const [loading, setLoading] = useState(true);
 
   async function loadCart() {
-    const response = await fetch("/api/cart", { cache: "no-store" });
-    if (response.status === 401) {
-      const localLines = readGuestCart();
-      if (localLines.length === 0) {
-        router.replace("/cart");
-        return;
-      }
-      setGuestCartLines(localLines);
-      const guestResponse = await fetch("/api/cart/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(localLines.map((line) => ({
-          ...line,
-          acceptedQuoteVersion: line.acceptedQuoteVersion,
-        }))),
-        cache: "no-store",
-      });
-      const guestQuote = await guestResponse.json() as CartState & { error?: string };
-      if (!guestResponse.ok) throw new Error(guestQuote.error ?? "Your cart could not be refreshed.");
-      setCart(guestQuote);
-      if (guestQuote.hasBlockingLines || guestQuote.needsAcceptance) {
-        setError("Review your cart before checkout: some items are unavailable or have a changed price.");
-        return;
-      }
-      await loadQuote(paymentMethod, localLines);
-      return;
-    }
-    if (!response.ok) throw new Error("Your cart could not be loaded.");
-    const currentCart = await response.json() as CartState;
-    setCart(currentCart);
-    if (currentCart.lines.length === 0) {
+    const localLines = readGuestCart();
+    if (localLines.length === 0) {
       router.replace("/cart");
       return;
     }
+    setGuestCartLines(localLines);
+    const response = await fetch("/api/cart/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(localLines),
+      cache: "no-store",
+    });
+    const currentCart = await response.json() as CartState & { error?: string };
+    if (!response.ok) throw new Error(currentCart.error ?? "Your cart could not be refreshed.");
+    setCart(currentCart);
     if (currentCart.hasBlockingLines || currentCart.needsAcceptance) {
       setError("Review your cart before checkout: some items are unavailable or have a changed price.");
       return;
     }
-    await loadQuote(paymentMethod);
+    await loadQuote(paymentMethod, localLines);
   }
 
   async function loadQuote(method: "ONLINE" | "COD", guestLines = guestCartLines) {
@@ -202,8 +188,18 @@ export function CheckoutForm() {
         body: JSON.stringify({
           idempotencyKey: idempotencyKey.current,
           paymentMethod,
-          customerEmail: values.email,
-          address: values,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phoneNumber: values.phoneNumber,
+          email: values.email,
+          address: {
+            line1: values.line1,
+            line2: values.line2,
+            landmark: values.landmark,
+            city: values.city,
+            state: values.state,
+            pinCode: values.pinCode,
+          },
           lines,
         }),
       });
@@ -246,7 +242,7 @@ export function CheckoutForm() {
         setBusy(false);
         return;
       }
-      if (guestCartLines) localStorage.removeItem("florangi-cart-v1");
+      localStorage.removeItem("florangi-cart-v1");
       router.push(`/orders/${result.order.id}/confirmation`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "A network error interrupted checkout. Your details are still here; retry safely.");
@@ -261,8 +257,30 @@ export function CheckoutForm() {
     <div className="grid gap-10 lg:grid-cols-[1fr_21rem]">
       <form className="space-y-8" onSubmit={submit}>
         <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="mb-1 font-serif text-2xl">Your contact details</legend>
+          {contactFields.map((field) => (
+            <label className="text-sm" htmlFor={field.name} key={field.name}>
+              {field.label}
+              <input
+                autoComplete={field.autocomplete}
+                className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3"
+                id={field.name}
+                name={field.name}
+                onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                pattern={field.name === "phoneNumber" ? "(\\+91[- ]?)?[6-9][0-9]{9}" : undefined}
+                required
+                type="text"
+                value={values[field.name]}
+              />
+            </label>
+          ))}
+          <label className="text-sm sm:col-span-2" htmlFor="checkoutEmail">
+            Email address
+            <input autoComplete="email" className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3 sm:max-w-md" id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} />
+          </label>
+        </fieldset>
+        <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="mb-1 font-serif text-2xl">Delivery address</legend>
-          <label className="text-sm sm:col-span-2" htmlFor="checkoutEmail">Email address<input autoComplete="email" className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3 sm:max-w-md" id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} /></label>
           {addressFields.map((field) => (
             <label className={`text-sm ${field.name === "line1" || field.name === "line2" ? "sm:col-span-2" : ""}`} htmlFor={field.name} key={field.name}>
               {field.label}
@@ -273,7 +291,7 @@ export function CheckoutForm() {
                 maxLength={field.name === "pinCode" ? 6 : 240}
                 name={field.name}
                 onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-                pattern={field.name === "pinCode" ? "[1-9][0-9]{5}" : field.name === "phone" ? "(\\+91[- ]?)?[6-9][0-9]{9}" : undefined}
+                pattern={field.name === "pinCode" ? "[1-9][0-9]{5}" : undefined}
                 required={!(("optional" in field) && field.optional)}
                 value={values[field.name]}
               />

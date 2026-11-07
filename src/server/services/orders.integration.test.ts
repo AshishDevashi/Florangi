@@ -1,18 +1,25 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { db } from "@/server/db";
 import { createManualClock } from "@/server/domain/clock";
 import { createCartQuoteVersion } from "@/server/services/cart";
-import { cancelOrderForCustomer, createOrderForCustomer, IdempotencyConflictError } from "@/server/services/orders";
+import { cancelOrderForGuest, createOrderForGuest, IdempotencyConflictError } from "@/server/services/orders";
 import { expireUnpaidOrders } from "@/server/payments/expiry";
 import { processPaymentWebhook, reconcileCapturedPayment, recordFailedPayment } from "@/server/payments/service";
 import { createFullRefundForAdmin } from "@/server/payments/refunds";
 import { enqueueEmailJob, decryptEmailPayload } from "@/server/email/outbox";
 import { processEmailJobs } from "@/server/email/worker";
-import { createReplacementRequestForCustomer } from "@/server/services/replacements";
+import { createGuestReplacementRequest } from "@/server/services/replacements";
 import { releaseReplacementAllocationForAdmin } from "@/server/services/replacements";
 import { correctOrderMeasurementsForAdmin } from "@/server/services/admin-orders";
-import { confirmCustomCodOrderForCustomer, enqueueCodConfirmationReminders } from "@/server/services/cod-confirmation";
+import { confirmCustomCodOrder, enqueueCodConfirmationReminders } from "@/server/services/cod-confirmation";
 import { getOrderTracking } from "@/server/services/order-tracking";
+
+const guestAccess = vi.hoisted(() => ({ orderId: "", token: "" }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => name === `florangi_order_${guestAccess.orderId}` ? { value: guestAccess.token } : undefined,
+  }),
+}));
 
 const now = new Date();
 const measurementRanges = {
@@ -30,15 +37,12 @@ let fixtureNumber = 0;
 async function createFixture(stock: number) {
   fixtureNumber += 1;
   const suffix = `${Date.now()}-${fixtureNumber}`;
-  const customer = await db.user.create({
-    data: {
-      email: `order-test-${suffix}@example.test`,
-      name: `Order Test ${fixtureNumber}`,
-      passwordHash: "integration-test-not-used",
-      emailVerifiedAt: now,
-    },
-    select: { id: true, email: true, name: true },
-  });
+  const customer = {
+    firstName: "Order",
+    lastName: `Test${fixtureNumber}`,
+    phoneNumber: "9876543210",
+    email: `order-test-${suffix}@example.test`,
+  };
   const category = await db.category.create({
     data: { name: `Integration ${suffix}`, slug: `integration-${suffix}`, visible: true },
   });
@@ -59,7 +63,6 @@ async function createFixture(stock: number) {
     include: { variants: true },
   });
   const variant = product.variants[0];
-  const cart = await db.cart.create({ data: { userId: customer.id } });
   const unitPricePaise = product.basePricePaise + variant.sizePremiumPaise;
   const quoteVersion = createCartQuoteVersion({
     productId: product.id,
@@ -69,33 +72,33 @@ async function createFixture(stock: number) {
     shippingFeePaise: 0,
     shippingFreeThresholdPaise: 500000,
   });
-  const cartLine = await db.cartLine.create({
-    data: {
-      cartId: cart.id,
-      productId: product.id,
-      variantId: variant.id,
-      quantity: 1,
-      acceptedUnitPaise: unitPricePaise,
-      quoteVersion,
-    },
-  });
-  return { customer, category, product, variant, cart, cartLine, quoteVersion };
+  const cartLine = {
+    lineId: crypto.randomUUID(),
+    productId: product.id,
+    variantId: variant.id,
+    quantity: 1,
+    acceptedUnitPaise: unitPricePaise,
+    quoteVersion,
+  };
+  return { customer, category, product, variant, cartLine, quoteVersion };
 }
 
 function payloadFor(fixture: Awaited<ReturnType<typeof createFixture>>, paymentMethod: "ONLINE" | "COD" = "COD") {
   return {
     idempotencyKey: crypto.randomUUID(),
     paymentMethod,
-    address: {
-      fullName: fixture.customer.name!,
-      phone: "9876543210",
-      line1: "1 Integration Road",
-      city: "Mumbai",
-      state: "Maharashtra",
-      pinCode: "400001",
-    },
-    lines: [{ lineId: fixture.cartLine.id, quantity: 1, quoteVersion: fixture.quoteVersion }],
+    firstName: fixture.customer.firstName,
+    lastName: fixture.customer.lastName,
+    phoneNumber: fixture.customer.phoneNumber,
+    email: fixture.customer.email,
+    address: { line1: "1 Integration Road", city: "Mumbai", state: "Maharashtra", pinCode: "400001" },
+    lines: [fixture.cartLine],
   };
+}
+
+function allowGuestOrderAccess(orderId: string, token: string) {
+  guestAccess.orderId = orderId;
+  guestAccess.token = token;
 }
 
 beforeAll(async () => {
@@ -117,7 +120,7 @@ beforeAll(async () => {
 describe("real PostgreSQL order integrity", () => {
   it("tracks an order publicly by number without returning private buyer data", async () => {
     const fixture = await createFixture(2);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture));
+    const placed = await createOrderForGuest(payloadFor(fixture));
     const tracking = await getOrderTracking(` ${placed.order.orderNumber.toLowerCase()} `);
     expect(tracking).toMatchObject({ orderNumber: placed.order.orderNumber, fulfillmentStatus: "PENDING_APPROVAL" });
     expect(Object.keys(tracking!).sort()).toEqual([
@@ -132,31 +135,33 @@ describe("real PostgreSQL order integrity", () => {
     expect(await getOrderTracking("FLR-0000-000000")).toBeNull();
   });
 
-  it("stores guest checkout contact independently of identity and sends the receipt to the buyer", async () => {
+  it("stores guest checkout contact on the order and sends the receipt to the buyer", async () => {
     const fixture = await createFixture(2);
-    const payload = { ...payloadFor(fixture), customerEmail: "guest-buyer@example.test" };
-    await expect(createOrderForCustomer(fixture.customer, payload)).rejects.toThrow("Checkout email does not match");
-    const guest = await db.user.update({ where: { id: fixture.customer.id }, data: { isGuestSession: true } });
-    const first = await createOrderForCustomer(guest, payload);
-    const retry = await createOrderForCustomer(guest, payload);
-    expect(first.order.contactSnapshot).toMatchObject({ email: payload.customerEmail });
-    expect(first.order.customerId).toBe(guest.id);
+    const payload = { ...payloadFor(fixture), email: "guest-buyer@example.test" };
+    const first = await createOrderForGuest(payload);
+    const retry = await createOrderForGuest(payload);
+    expect(first.order).toMatchObject({
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phoneNumber: payload.phoneNumber,
+      email: payload.email,
+    });
     expect(retry.order.id).toBe(first.order.id);
     expect(retry.reused).toBe(true);
     const receipts = await db.emailJob.findMany({ where: { eventKey: `order-received:${first.order.id}` } });
     expect(receipts).toHaveLength(1);
-    expect(receipts[0].recipient).toBe(payload.customerEmail);
-    await expect(createOrderForCustomer(guest, { ...payload, customerEmail: "another-buyer@example.test" }))
+    expect(receipts[0].recipient).toBe(payload.email);
+    await expect(createOrderForGuest({ ...payload, email: "another-buyer@example.test" }))
       .rejects.toBeInstanceOf(IdempotencyConflictError);
   });
 
   it("AT-10 reserves stock atomically, records snapshots, and safely retries idempotent COD checkout", async () => {
     const fixture = await createFixture(2);
     const payload = payloadFor(fixture);
-    const first = await createOrderForCustomer(fixture.customer, payload);
-    const retry = await createOrderForCustomer(fixture.customer, payload);
+    const first = await createOrderForGuest(payload);
+    const retry = await createOrderForGuest(payload);
     const changed = { ...payload, address: { ...payload.address, city: "Pune" } };
-    await expect(createOrderForCustomer(fixture.customer, changed)).rejects.toBeInstanceOf(IdempotencyConflictError);
+    await expect(createOrderForGuest(changed)).rejects.toBeInstanceOf(IdempotencyConflictError);
 
     const stored = await db.order.findUniqueOrThrow({
       where: { id: first.order.id },
@@ -173,7 +178,6 @@ describe("real PostgreSQL order integrity", () => {
     expect(stored.lines[0].unitPricePaise).toBe(105000);
     expect(stored.lines[0].productName).toBe(fixture.product.name);
     expect(inventory.reserved).toBe(1);
-    expect(await db.cartLine.count({ where: { cartId: fixture.cart.id } })).toBe(0);
   });
 
   it("AT-05 lets exactly one concurrent checkout reserve the final unit", async () => {
@@ -195,31 +199,25 @@ describe("real PostgreSQL order integrity", () => {
       include: { variants: true },
     });
     const variant = sharedProduct.variants[0];
-    const secondCartLine = await db.cartLine.create({
-      data: {
-        cartId: second.cart.id,
-        productId: sharedProduct.id,
-        variantId: variant.id,
-        quantity: 1,
-        acceptedUnitPaise: sharedProduct.basePricePaise,
-        quoteVersion: createCartQuoteVersion({ productId: sharedProduct.id, variantId: variant.id, type: sharedProduct.type, unitPricePaise: sharedProduct.basePricePaise, shippingFeePaise: 0, shippingFreeThresholdPaise: 500000 }),
-      },
+    const sharedQuoteVersion = createCartQuoteVersion({
+      productId: sharedProduct.id,
+      variantId: variant.id,
+      type: sharedProduct.type,
+      unitPricePaise: sharedProduct.basePricePaise,
+      shippingFeePaise: 0,
+      shippingFreeThresholdPaise: 500000,
     });
-    await db.cartLine.update({
-      where: { id: first.cartLine.id },
-      data: {
-        productId: sharedProduct.id,
-        variantId: variant.id,
-        acceptedUnitPaise: sharedProduct.basePricePaise,
-        quoteVersion: createCartQuoteVersion({ productId: sharedProduct.id, variantId: variant.id, type: sharedProduct.type, unitPricePaise: sharedProduct.basePricePaise, shippingFeePaise: 0, shippingFreeThresholdPaise: 500000 }),
-      },
+    const sharedLineFor = (fixture: Awaited<ReturnType<typeof createFixture>>) => ({
+      ...fixture.cartLine,
+      productId: sharedProduct.id,
+      variantId: variant.id,
+      acceptedUnitPaise: sharedProduct.basePricePaise,
+      quoteVersion: sharedQuoteVersion,
     });
 
     const attempts = await Promise.allSettled([
-      createOrderForCustomer(first.customer, payloadFor({ ...first, product: sharedProduct, variant, quoteVersion: createCartQuoteVersion({ productId: sharedProduct.id, variantId: variant.id, type: sharedProduct.type, unitPricePaise: sharedProduct.basePricePaise, shippingFeePaise: 0, shippingFreeThresholdPaise: 500000 }) }, "ONLINE")),
-      createOrderForCustomer(second.customer, {
-        ...payloadFor({ ...second, product: sharedProduct, variant, cartLine: secondCartLine, quoteVersion: createCartQuoteVersion({ productId: sharedProduct.id, variantId: variant.id, type: sharedProduct.type, unitPricePaise: sharedProduct.basePricePaise, shippingFeePaise: 0, shippingFreeThresholdPaise: 500000 }) }, "ONLINE"),
-      }),
+      createOrderForGuest({ ...payloadFor(first, "ONLINE"), lines: [sharedLineFor(first)] }),
+      createOrderForGuest({ ...payloadFor(second, "ONLINE"), lines: [sharedLineFor(second)] }),
     ]);
     const successes = attempts.filter((attempt) => attempt.status === "fulfilled");
     const inventory = await db.productVariant.findUniqueOrThrow({ where: { id: variant.id } });
@@ -230,10 +228,10 @@ describe("real PostgreSQL order integrity", () => {
 
   it("releases a pending order reservation exactly once on customer cancellation", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "ONLINE"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "ONLINE"));
     const before = await db.productVariant.findUniqueOrThrow({ where: { id: fixture.variant.id } });
-    const cancelled = await cancelOrderForCustomer(fixture.customer, placed.order.id);
-    await expect(cancelOrderForCustomer(fixture.customer, placed.order.id)).rejects.toThrow();
+    const cancelled = await cancelOrderForGuest(placed.order.id);
+    await expect(cancelOrderForGuest(placed.order.id)).rejects.toThrow();
     const after = await db.productVariant.findUniqueOrThrow({ where: { id: fixture.variant.id } });
     expect(placed.order.fulfillmentStatus).toBe("PENDING_PAYMENT");
     expect(cancelled.fulfillmentStatus).toBe("CANCELLED");
@@ -243,7 +241,7 @@ describe("real PostgreSQL order integrity", () => {
 
   it("AT-06 expires unpaid orders under lock and flags a late capture without re-reserving stock", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "ONLINE"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "ONLINE"));
     const providerOrderId = `mock_order_expiry_${crypto.randomUUID()}`;
     const paymentId = `mock_payment_late_${crypto.randomUUID()}`;
     await db.order.update({
@@ -281,7 +279,7 @@ describe("real PostgreSQL order integrity", () => {
 
   it("AT-07/08 reconciles capture once, clears only purchased lines, redacts webhook data, and ignores late failure", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "ONLINE"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "ONLINE"));
     const providerOrderId = `mock_order_capture_${crypto.randomUUID()}`;
     const paymentId = `mock_payment_capture_${crypto.randomUUID()}`;
     await db.order.update({ where: { id: placed.order.id }, data: { razorpayOrderId: providerOrderId } });
@@ -309,7 +307,6 @@ describe("real PostgreSQL order integrity", () => {
     const webhook = await processPaymentWebhook(rawEvent, eventId);
     const webhookReplay = await processPaymentWebhook(rawEvent, eventId);
     const storedOrder = await db.order.findUniqueOrThrow({ where: { id: placed.order.id } });
-    const remainingCartLines = await db.cartLine.count({ where: { cartId: fixture.cart.id } });
     const storedEvent = await db.paymentEvent.findUniqueOrThrow({ where: { providerEventId: eventId } });
     const emails = await db.emailJob.count({ where: { eventKey: `order-received:${placed.order.id}` } });
 
@@ -318,7 +315,6 @@ describe("real PostgreSQL order integrity", () => {
     expect("ignored" in failure && failure.ignored).toBe(true);
     expect(storedOrder.paymentStatus).toBe("PAID");
     expect(storedOrder.fulfillmentStatus).toBe("PENDING_APPROVAL");
-    expect(remainingCartLines).toBe(0);
     expect(webhook.duplicate).toBe(false);
     expect(webhookReplay.duplicate).toBe(true);
     expect(JSON.stringify(storedEvent.payload)).not.toContain("must-not-be-persisted@example.test");
@@ -327,7 +323,7 @@ describe("real PostgreSQL order integrity", () => {
 
   it("AT-12 verifies a full refund idempotently without changing fulfillment status", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "ONLINE"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "ONLINE"));
     const providerOrderId = `mock_order_refund_${crypto.randomUUID()}`;
     const paymentId = `mock_payment_refund_${crypto.randomUUID()}`;
     await db.order.update({ where: { id: placed.order.id }, data: { razorpayOrderId: providerOrderId } });
@@ -347,13 +343,11 @@ describe("real PostgreSQL order integrity", () => {
       where: { id: placed.order.id },
       data: { fulfillmentStatus: "CANCELLED", paymentStatus: "REFUND_REQUIRED" },
     });
-    const admin = await db.user.create({
+    const admin = await db.adminUser.create({
       data: {
         email: `refund-admin-${crypto.randomUUID()}@example.test`,
         name: "Refund Admin",
         passwordHash: "integration-test-not-used",
-        role: "ADMIN",
-        emailVerifiedAt: now,
       },
       select: { id: true, email: true, name: true },
     });
@@ -391,7 +385,8 @@ describe("real PostgreSQL order integrity", () => {
 
   it("AT-11 enforces the delivered replacement window and rejects duplicate open line requests", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "COD"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "COD"));
+    allowGuestOrderAccess(placed.order.id, placed.accessToken);
     const deliveredAt = new Date("2026-01-01T00:00:00.000Z");
     await db.order.update({ where: { id: placed.order.id }, data: { fulfillmentStatus: "DELIVERED" } });
     await db.shipment.create({
@@ -404,19 +399,19 @@ describe("real PostgreSQL order integrity", () => {
       },
     });
     const beforeClose = createManualClock(new Date(deliveredAt.getTime() + (95 * 60 + 59) * 60_000));
-    const request = await createReplacementRequestForCustomer(fixture.customer, {
+    const request = await createGuestReplacementRequest({
       orderId: placed.order.id,
       reason: "Synthetic exchange window test.",
       lines: [{ orderLineId: placed.order.lines[0].id, desiredSize: "S" }],
     }, [], beforeClose);
-    await expect(createReplacementRequestForCustomer(fixture.customer, {
+    await expect(createGuestReplacementRequest({
       orderId: placed.order.id,
       reason: "Duplicate open request.",
       lines: [{ orderLineId: placed.order.lines[0].id, desiredSize: "M" }],
     }, [], beforeClose)).rejects.toThrow(/open replacement request/i);
 
     const atClose = createManualClock(new Date(deliveredAt.getTime() + 96 * 60 * 60 * 1000));
-    await expect(createReplacementRequestForCustomer(fixture.customer, {
+    await expect(createGuestReplacementRequest({
       orderId: placed.order.id,
       reason: "Closed-window request.",
       lines: [{ orderLineId: placed.order.lines[0].id, desiredSize: "M" }],
@@ -427,15 +422,12 @@ describe("real PostgreSQL order integrity", () => {
   it("ORD-14/EML-3/16 creates a signed COD confirmation link and queues one 24-hour reminder", async () => {
     fixtureNumber += 1;
     const suffix = `${Date.now()}-${fixtureNumber}`;
-    const customer = await db.user.create({
-      data: {
-        email: `cod-confirm-${suffix}@example.test`,
-        name: "COD Confirmation Test",
-        passwordHash: "integration-test-not-used",
-        emailVerifiedAt: now,
-      },
-      select: { id: true, email: true, name: true },
-    });
+    const customer = {
+      firstName: "COD",
+      lastName: "Confirmation Test",
+      phoneNumber: "9876543210",
+      email: `cod-confirm-${suffix}@example.test`,
+    };
     const category = await db.category.create({ data: { name: `Custom ${suffix}`, slug: `custom-${suffix}`, visible: true } });
     const product = await db.product.create({
       data: {
@@ -450,7 +442,6 @@ describe("real PostgreSQL order integrity", () => {
         images: { create: [{ provider: "static", key: `images/custom-confirmation-${suffix}.svg`, mimeType: "image/svg+xml", sizeBytes: 100, position: 0 }] },
       },
     });
-    const cart = await db.cart.create({ data: { userId: customer.id } });
     const measurements = { bust: 36, underbust: 32, waist: 30, hips: 40, dressLength: 55, heightFeet: 5, heightInches: 6 };
     const unitPricePaise = product.basePricePaise + product.customizationFeePaise!;
     const quoteVersion = createCartQuoteVersion({
@@ -461,21 +452,23 @@ describe("real PostgreSQL order integrity", () => {
       shippingFeePaise: 0,
       shippingFreeThresholdPaise: 500000,
     });
-    const line = await db.cartLine.create({
-      data: {
-        cartId: cart.id,
+    const placed = await createOrderForGuest({
+      idempotencyKey: crypto.randomUUID(),
+      paymentMethod: "COD",
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phoneNumber: customer.phoneNumber,
+      email: customer.email,
+      address: { line1: "1 COD Road", city: "Mumbai", state: "Maharashtra", pinCode: "400001" },
+      lines: [{
+        lineId: crypto.randomUUID(),
         productId: product.id,
+        variantId: null,
         quantity: 1,
         measurements,
         acceptedUnitPaise: unitPricePaise,
         quoteVersion,
-      },
-    });
-    const placed = await createOrderForCustomer(customer, {
-      idempotencyKey: crypto.randomUUID(),
-      paymentMethod: "COD",
-      address: { fullName: customer.name!, phone: "9876543210", line1: "1 COD Road", city: "Mumbai", state: "Maharashtra", pinCode: "400001" },
-      lines: [{ lineId: line.id, quantity: 1, quoteVersion }],
+      }],
     });
     const confirmationEmail = await db.emailJob.findFirstOrThrow({ where: { eventKey: `cod-confirmation-initial:${placed.order.id}` } });
     const emailPayload = decryptEmailPayload(confirmationEmail.payload);
@@ -493,7 +486,7 @@ describe("real PostgreSQL order integrity", () => {
     const parsedToken = new URLSearchParams(token).get("token");
     expect(parsedToken).toBeTruthy();
 
-    const confirmed = await confirmCustomCodOrderForCustomer(customer, placed.order.id, parsedToken!);
+    const confirmed = await confirmCustomCodOrder(placed.order.id, parsedToken!);
     expect(confirmed.duplicate).toBe(false);
     expect(confirmed.order.confirmationMethod).toBe("EMAIL_LINK");
     expect(confirmed.order.fulfillmentStatus).toBe("PENDING_APPROVAL");
@@ -502,7 +495,7 @@ describe("real PostgreSQL order integrity", () => {
 
   it("REQ-7 releases an accepted DD exchange allocation with a stock movement", async () => {
     const fixture = await createFixture(1);
-    const placed = await createOrderForCustomer(fixture.customer, payloadFor(fixture, "COD"));
+    const placed = await createOrderForGuest(payloadFor(fixture, "COD"));
     await db.order.update({ where: { id: placed.order.id }, data: { fulfillmentStatus: "DELIVERED" } });
     const deliveredAt = new Date();
     await db.shipment.create({
@@ -520,7 +513,6 @@ describe("real PostgreSQL order integrity", () => {
     const request = await db.replacementRequest.create({
       data: {
         orderId: placed.order.id,
-        customerId: fixture.customer.id,
         status: "ACCEPTED",
         reason: "Synthetic exchange allocation release.",
         logisticsNote: "Hold for customer return.",
@@ -535,13 +527,11 @@ describe("real PostgreSQL order integrity", () => {
       },
       include: { lines: true },
     });
-    const admin = await db.user.create({
+    const admin = await db.adminUser.create({
       data: {
         email: `allocation-admin-${crypto.randomUUID()}@example.test`,
         name: "Allocation Admin",
         passwordHash: "integration-test-not-used",
-        role: "ADMIN",
-        emailVerifiedAt: now,
       },
       select: { id: true, email: true, name: true },
     });
@@ -559,15 +549,12 @@ describe("real PostgreSQL order integrity", () => {
   it("ORD-9 versions measurement corrections without overwriting the original snapshot", async () => {
     fixtureNumber += 1;
     const suffix = `${Date.now()}-${fixtureNumber}`;
-    const customer = await db.user.create({
-      data: {
-        email: `measurement-customer-${suffix}@example.test`,
-        name: "Measurement Customer",
-        passwordHash: "integration-test-not-used",
-        emailVerifiedAt: now,
-      },
-      select: { id: true, email: true, name: true },
-    });
+    const customer = {
+      firstName: "Measurement",
+      lastName: "Customer",
+      phoneNumber: "9876543210",
+      email: `measurement-customer-${suffix}@example.test`,
+    };
     const category = await db.category.create({ data: { name: `Measurements ${suffix}`, slug: `measurements-${suffix}`, visible: true } });
     const product = await db.product.create({
       data: {
@@ -582,19 +569,29 @@ describe("real PostgreSQL order integrity", () => {
         images: { create: [{ provider: "static", key: `images/measurement-${suffix}.svg`, mimeType: "image/svg+xml", sizeBytes: 100, position: 0 }] },
       },
     });
-    const cart = await db.cart.create({ data: { userId: customer.id } });
     const original = { bust: 36, underbust: 32, waist: 30, hips: 40, dressLength: 55, heightFeet: 5, heightInches: 6 };
     const unitPricePaise = product.basePricePaise + product.customizationFeePaise!;
     const quoteVersion = createCartQuoteVersion({ productId: product.id, variantId: null, type: product.type, unitPricePaise, shippingFeePaise: 0, shippingFreeThresholdPaise: 500000 });
-    const cartLine = await db.cartLine.create({ data: { cartId: cart.id, productId: product.id, quantity: 1, measurements: original, acceptedUnitPaise: unitPricePaise, quoteVersion } });
-    const placed = await createOrderForCustomer(customer, {
+    const placed = await createOrderForGuest({
       idempotencyKey: crypto.randomUUID(),
       paymentMethod: "COD",
-      address: { fullName: customer.name!, phone: "9876543210", line1: "1 Measurement Road", city: "Mumbai", state: "Maharashtra", pinCode: "400001" },
-      lines: [{ lineId: cartLine.id, quantity: 1, quoteVersion }],
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phoneNumber: customer.phoneNumber,
+      email: customer.email,
+      address: { line1: "1 Measurement Road", city: "Mumbai", state: "Maharashtra", pinCode: "400001" },
+      lines: [{
+        lineId: crypto.randomUUID(),
+        productId: product.id,
+        variantId: null,
+        quantity: 1,
+        measurements: original,
+        acceptedUnitPaise: unitPricePaise,
+        quoteVersion,
+      }],
     });
-    const admin = await db.user.create({
-      data: { email: `measurement-admin-${suffix}@example.test`, name: "Measurement Admin", passwordHash: "integration-test-not-used", role: "ADMIN", emailVerifiedAt: now },
+    const admin = await db.adminUser.create({
+      data: { email: `measurement-admin-${suffix}@example.test`, name: "Measurement Admin", passwordHash: "integration-test-not-used" },
       select: { id: true, email: true, name: true },
     });
     const corrected = { ...original, waist: 31, fitNotes: "Customer requested correction." };

@@ -7,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  CUSTOMER
-  ADMIN
-}
-
 enum ProductType {
   DESIGNER_DRESS
   CUSTOM_DRESS
@@ -105,84 +100,31 @@ enum JobStatus {
   FAILED
 }
 
-model User {
-  id                 String                 @id @default(cuid())
-  email              String                 @unique
-  passwordHash       String
-  role               UserRole               @default(CUSTOMER)
-  emailVerifiedAt    DateTime?
-  isGuestSession     Boolean                @default(false)
-  name               String?
-  phone              String?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  addresses          Address[]
-  sessions           Session[]
-  verificationTokens VerificationToken[]
-  resetTokens        PasswordResetToken[]
-  carts              Cart[]
-  orders             Order[]                @relation("CustomerOrders")
-  stockMovements     StockMovement[]        @relation("StockMovementActor")
-  timelineEvents     OrderTimelineEvent[]   @relation("TimelineActor")
-  orderNotes         OrderNote[]             @relation("NoteAuthor")
-  auditLogs          AuditLog[]
-  measurementEdits   MeasurementVersion[]    @relation("MeasurementEditor")
-  replacementRequests ReplacementRequest[]   @relation("ReplacementCustomer")
-  settingsCreated    Setting[]               @relation("SettingAuthor")
+model AdminUser {
+  id               String                 @id @default(cuid())
+  email            String                 @unique
+  passwordHash     String
+  name             String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  sessions         AdminSession[]
+  stockMovements   StockMovement[]        @relation("StockMovementActor")
+  timelineEvents   OrderTimelineEvent[]   @relation("TimelineActor")
+  orderNotes       OrderNote[]            @relation("NoteAuthor")
+  auditLogs        AuditLog[]
+  measurementEdits MeasurementVersion[]   @relation("MeasurementEditor")
+  settingsCreated  Setting[]              @relation("SettingAuthor")
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model AdminSession {
+  id          String   @id @default(cuid())
+  adminUserId String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
-  @@index([userId, expiresAt])
-}
-
-model VerificationToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, expiresAt])
-}
-
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, expiresAt])
-}
-
-model Address {
-  id         String   @id @default(cuid())
-  userId     String
-  fullName   String
-  phone      String
-  line1      String
-  line2      String?
-  landmark   String?
-  city       String
-  state      String
-  pinCode    String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isDefault])
+  @@index([adminUserId, expiresAt])
 }
 
 model Category {
@@ -279,7 +221,7 @@ model StockMovement {
   createdAt   DateTime         @default(now())
   variant     ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Restrict)
   order       Order?           @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  actor       User?            @relation("StockMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor       AdminUser?       @relation("StockMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([variantId, createdAt])
   @@index([orderId])
@@ -287,28 +229,26 @@ model StockMovement {
 
 model Cart {
   id             String     @id @default(cuid())
-  userId         String?    @unique
-  guestTokenHash String?    @unique
+  guestTokenHash String     @unique
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-  user           User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lines          CartLine[]
 }
 
 model CartLine {
-  id                  String         @id @default(cuid())
-  cartId              String
-  productId           String
-  variantId           String?
-  measurements        Json?
-  quantity            Int            @default(1)
-  acceptedUnitPaise   Int?
-  quoteVersion        String?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  cart                Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product             Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variant             ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  id                String          @id @default(cuid())
+  cartId            String
+  productId         String
+  variantId         String?
+  measurements      Json?
+  quantity          Int             @default(1)
+  acceptedUnitPaise Int?
+  quoteVersion      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  cart              Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant           ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   @@index([cartId])
 }
@@ -316,7 +256,10 @@ model CartLine {
 model Order {
   id                    String             @id @default(cuid())
   orderNumber           String             @unique
-  customerId            String
+  firstName             String
+  lastName              String
+  phoneNumber           String
+  email                 String
   fulfillmentStatus     FulfillmentStatus
   paymentStatus         PaymentStatus
   paymentMethod         PaymentMethod
@@ -326,7 +269,6 @@ model Order {
   codSurchargePaise     Int
   totalPaise            Int
   addressSnapshot       Json
-  contactSnapshot       Json
   settingsSnapshot      Json
   paymentDeadline       DateTime?
   idempotencyKey        String
@@ -339,7 +281,6 @@ model Order {
   codCollectedAmountPaise Int?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
-  customer              User               @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   lines                 OrderLine[]
   stockMovements        StockMovement[]
   paymentAttempts       PaymentAttempt[]
@@ -349,8 +290,9 @@ model Order {
   shipment              Shipment?
   replacementRequests  ReplacementRequest[]
   confirmationTokens   OrderConfirmationToken[]
+  accessTokens         OrderAccessToken[]
 
-  @@unique([customerId, idempotencyKey])
+  @@unique([idempotencyKey])
   @@index([fulfillmentStatus, createdAt])
   @@index([paymentStatus, paymentDeadline])
 }
@@ -364,8 +306,6 @@ model OrderCounter {
 model OrderLine {
   id                    String              @id @default(cuid())
   orderId               String
-  sourceCartLineId      String?
-  sourceCartQuoteVersion String?
   productId             String
   productName           String
   productImage          Json?
@@ -387,7 +327,6 @@ model OrderLine {
   measurementVersions   MeasurementVersion[]
   replacementLines      ReplacementRequestLine[]
 
-  @@index([sourceCartLineId])
   @@index([orderId])
 }
 
@@ -402,7 +341,7 @@ model MeasurementVersion {
   usedForProductionAt   DateTime?
   createdAt             DateTime  @default(now())
   orderLine             OrderLine @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
-  author                User?     @relation("MeasurementEditor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  author                AdminUser? @relation("MeasurementEditor", fields: [authorUserId], references: [id], onDelete: SetNull)
 
   @@unique([orderLineId, version])
 }
@@ -449,6 +388,17 @@ model OrderConfirmationToken {
   @@index([orderId, expiresAt])
 }
 
+model OrderAccessToken {
+  id        String    @id @default(cuid())
+  orderId   String
+  tokenHash String    @unique
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, revokedAt])
+}
+
 model Refund {
   id              String       @id @default(cuid())
   orderId         String
@@ -473,7 +423,7 @@ model OrderTimelineEvent {
   note        String?
   createdAt   DateTime @default(now())
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  actor       User?    @relation("TimelineActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor       AdminUser? @relation("TimelineActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
 }
@@ -485,7 +435,7 @@ model OrderNote {
   body        String
   createdAt   DateTime @default(now())
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  author      User?    @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  author      AdminUser? @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
 }
@@ -500,7 +450,7 @@ model AuditLog {
   before      Json?
   after       Json?
   createdAt   DateTime @default(now())
-  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor       AdminUser? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId, createdAt])
 }
@@ -522,7 +472,6 @@ model Shipment {
 model ReplacementRequest {
   id              String              @id @default(cuid())
   orderId         String
-  customerId      String
   status          ReplacementStatus   @default(OPEN)
   reason          String
   notes           String?
@@ -533,12 +482,11 @@ model ReplacementRequest {
   updatedAt       DateTime            @updatedAt
   resolvedAt      DateTime?
   order           Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  customer        User                @relation("ReplacementCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   lines           ReplacementRequestLine[]
   photos          ReplacementPhoto[]
 
   @@index([status, createdAt])
-  @@index([orderId, customerId])
+  @@index([orderId])
 }
 
 model ReplacementRequestLine {
@@ -579,7 +527,7 @@ model Setting {
   effectiveAt DateTime @default(now())
   createdById String?
   createdAt   DateTime @default(now())
-  createdBy   User?    @relation("SettingAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   AdminUser? @relation("SettingAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([key, version])
   @@index([key, effectiveAt])

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const removeFile = vi.hoisted(() => vi.fn());
+
 vi.mock("@/server/db", () => ({
   db: {
     $transaction: vi.fn(),
@@ -10,9 +12,55 @@ vi.mock("@/server/db", () => ({
 
 vi.mock("@/server/auth/guards", () => ({ requireAdmin: vi.fn(async () => ({ id: "admin-test" })) }));
 vi.mock("@/server/services/audit", () => ({ auditJson: (value: unknown) => value, writeAuditEntry: vi.fn() }));
+vi.mock("@/server/storage", () => ({ getStorageProvider: vi.fn(() => ({ delete: removeFile })) }));
 
 import { db } from "@/server/db";
-import { deleteProduct, getPublicCollection, getPublicProduct, listFeaturedProducts, updateProduct } from "@/server/services/catalog";
+import { requireAdmin } from "@/server/auth/guards";
+import { writeAuditEntry } from "@/server/services/audit";
+import { getStorageProvider } from "@/server/storage";
+import { deleteCategory, deleteProduct, getPublicCollection, getPublicProduct, listFeaturedProducts, updateProduct } from "@/server/services/catalog";
+
+describe("admin category deletion", () => {
+  const category = { id: "category-test", name: "Empty category", images: [], _count: { products: 0 } };
+  const transaction = {
+    $queryRaw: vi.fn(),
+    category: { findUnique: vi.fn(), delete: vi.fn() },
+  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.$transaction).mockImplementation(async (callback) => (callback as (tx: unknown) => unknown)(transaction) as never);
+    transaction.category.findUnique.mockResolvedValue(category);
+  });
+  it("deletes and audits an empty category under a row lock", async () => {
+    await expect(deleteCategory(category.id)).resolves.toEqual({ id: category.id });
+    expect(requireAdmin).toHaveBeenCalled();
+    expect(transaction.$queryRaw).toHaveBeenCalled();
+    expect(transaction.category.delete).toHaveBeenCalledWith({ where: { id: category.id } });
+    expect(writeAuditEntry).toHaveBeenCalledWith(transaction, expect.objectContaining({
+      action: "CATEGORY_DELETED", entityId: category.id, actorUserId: "admin-test",
+    }));
+  });
+  it("rejects categories with any linked products without deleting them", async () => {
+    transaction.category.findUnique.mockResolvedValue({ ...category, _count: { products: 1 } });
+    await expect(deleteCategory(category.id)).rejects.toThrow("linked products");
+    expect(transaction.category.delete).not.toHaveBeenCalled();
+    expect(getStorageProvider).not.toHaveBeenCalled();
+  });
+  it("returns not found for a missing category", async () => {
+    transaction.category.findUnique.mockResolvedValue(null);
+    await expect(deleteCategory("missing")).resolves.toBeNull();
+    expect(transaction.category.delete).not.toHaveBeenCalled();
+  });
+  it("removes the deleted category's stored images", async () => {
+    transaction.category.findUnique.mockResolvedValue({
+      ...category, images: [{ provider: "local", key: "categories/test.png", mimeType: "image/png", sizeBytes: 100 }],
+    });
+    await expect(deleteCategory(category.id)).resolves.toEqual({ id: category.id });
+    expect(removeFile).toHaveBeenCalledWith({
+      provider: "local", key: "categories/test.png", mimeType: "image/png", size: 100,
+    });
+  });
+});
 
 describe("admin product lifecycle", () => {
   const product = {

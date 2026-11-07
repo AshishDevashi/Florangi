@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/server/auth/session";
-import { getCustomerOrder } from "@/server/services/orders";
+import { notFound } from "next/navigation";
+import { getGuestOrder } from "@/server/services/orders";
 import { CodConfirmationForm } from "@/components/orders/cod-confirmation-form";
+import { GuestOrderAccessGate } from "@/components/orders/guest-order-access-gate";
 
 export const instant = false;
 
 export default async function ConfirmCodOrderPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "CUSTOMER" || (!user.emailVerifiedAt && !user.isGuestSession)) redirect("/");
   const { id } = await params;
-  const order = await getCustomerOrder(id);
-  if (!order) notFound();
+  const order = await getGuestOrder(id);
+  if (!order) return <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-5 py-6 sm:px-8"><GuestOrderAccessGate orderId={id} /></main>;
   if (order.paymentMethod !== "COD" || !order.lines.some((line) => line.productType === "CUSTOM_DRESS")) notFound();
 
   return (

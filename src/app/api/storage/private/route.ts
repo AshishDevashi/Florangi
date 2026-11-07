@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { getCurrentUser } from "@/server/auth/session";
+import { getCurrentAdmin } from "@/server/auth/session";
+import { hasGuestOrderAccess } from "@/server/guest-order-access";
 import { verifyPrivateFileSignature } from "@/server/storage/local";
 import { getStorageProvider } from "@/server/storage";
 
@@ -15,12 +16,15 @@ export async function GET(request: Request) {
 
   const photo = await db.replacementPhoto.findFirst({
     where: { provider: "local", key },
-    include: { request: { select: { customerId: true } } },
+    include: { request: { select: { orderId: true } } },
   });
   if (!photo) return new Response(null, { status: 404 });
 
-  const user = await getCurrentUser();
-  if (!user || (user.role !== "ADMIN" && user.id !== photo.request.customerId)) {
+  const [admin, hasOrderAccess] = await Promise.all([
+    getCurrentAdmin(),
+    hasGuestOrderAccess(photo.request.orderId),
+  ]);
+  if (!admin && !hasOrderAccess) {
     return new Response(null, { status: 404 });
   }
 

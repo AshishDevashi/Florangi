@@ -236,6 +236,42 @@ export async function updateCategory(id: string, input: unknown) {
   });
 }
 
+export async function deleteCategory(id: string) {
+  const actor = await requireAdmin();
+  const removed = await db.$transaction(async (transaction) => {
+    // Block concurrent product links until the count check and deletion commit.
+    await transaction.$queryRaw`SELECT "id" FROM "Category" WHERE "id" = ${id} FOR UPDATE`;
+    const category = await transaction.category.findUnique({
+      where: { id },
+      include: { images: true, _count: { select: { products: true } } },
+    });
+    if (!category) return null;
+    if (category._count.products > 0) {
+      throw new RangeError("This category has linked products. Move or delete all products before deleting it.");
+    }
+    await transaction.category.delete({ where: { id } });
+    await writeAuditEntry(transaction, {
+      actorUserId: actor.id,
+      actorType: "USER",
+      action: "CATEGORY_DELETED",
+      entity: "Category",
+      entityId: id,
+      before: auditJson(category),
+    });
+    return category;
+  });
+  if (!removed) return null;
+  for (const image of removed.images) {
+    await getStorageProvider(image.provider).delete({
+      provider: image.provider as StoredFile["provider"],
+      key: image.key,
+      mimeType: image.mimeType,
+      size: image.sizeBytes,
+    });
+  }
+  return { id };
+}
+
 export async function listAdminProducts() {
   await requireAdmin();
   const products = await db.product.findMany({

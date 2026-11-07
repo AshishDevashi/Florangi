@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit, isSameOriginMutation } from "@/server/auth/request-security";
 import { apiError } from "@/server/http/api-error";
-import { createCustomerReplacementRequest } from "@/server/services/replacements";
+import { createGuestReplacementRequest } from "@/server/services/replacements";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Request origin is not allowed." }, { status: 403 });
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       mimeType: file.type,
       size: file.size,
     })));
-    return NextResponse.json(await createCustomerReplacementRequest(details, photos), { status: 201 });
+    return NextResponse.json(await createGuestReplacementRequest(details, photos), { status: 201 });
   } catch (error) {
     return apiError(error);
   }

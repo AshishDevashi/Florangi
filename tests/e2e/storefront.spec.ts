@@ -52,6 +52,12 @@ test("admin catalog supports category images, product restore and deletion", asy
     const row = page.locator("li").filter({ has: page.getByRole("heading", { name: productName, exact: true }) });
     await row.getByRole("button", { name: "Archive", exact: true }).click();
     await expect(row.getByText("ARCHIVED", { exact: true })).toBeVisible();
+    const blockedDelete = await page.request.delete(`/api/admin/categories/${categoryId}`, { headers: { origin } });
+    expect(blockedDelete.status()).toBe(400);
+    expect((await blockedDelete.json()).error).toContain("linked products");
+    await page.goto("/admin/categories");
+    await expect(page.getByRole("button", { name: `Delete ${categoryName}`, exact: true })).toBeDisabled();
+    await page.goto("/admin/products");
     await row.getByRole("button", { name: "Activate", exact: true }).click();
     await expect(row.getByText("ACTIVE", { exact: true })).toBeVisible();
     for (const width of [360, 1440]) {
@@ -62,6 +68,16 @@ test("admin catalog supports category images, product restore and deletion", asy
     page.once("dialog", (dialog) => dialog.accept());
     await row.getByRole("button", { name: `Delete ${productName}`, exact: true }).click();
     await expect(row).toHaveCount(0);
+    await page.goto("/admin/categories");
+    const categoryDelete = page.getByRole("button", { name: `Delete ${categoryName}`, exact: true });
+    await expect(categoryDelete).toBeEnabled();
+    page.once("dialog", (dialog) => dialog.accept());
+    await categoryDelete.click();
+    await expect(categoryDelete).toHaveCount(0);
+    expect(await db.category.count({ where: { id: categoryId } })).toBe(0);
+    expect(await db.categoryImage.count({ where: { categoryId } })).toBe(0);
+    expect(await db.auditLog.count({ where: { entityId: categoryId, action: "CATEGORY_DELETED" } })).toBe(1);
+    expect((await page.request.delete(`/api/admin/categories/${categoryId}`, { headers: { origin } })).status()).toBe(404);
     await page.goto("/admin/settings");
     await expect(page.getByLabel("Shipping fee (₹)", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Free shipping threshold (₹)", { exact: true })).toBeVisible();
@@ -74,7 +90,7 @@ test("admin catalog supports category images, product restore and deletion", asy
     }
     if (categoryId) await db.category.deleteMany({ where: { id: categoryId } });
     await db.auditLog.deleteMany({ where: { entityId: { in: [categoryId, productId].filter(Boolean) } } });
-    await page.request.post("/api/auth/logout", { headers: { origin } });
+    await page.request.post("/api/admin/auth/logout", { headers: { origin } });
     await db.$disconnect();
   }
 });
@@ -114,7 +130,7 @@ test("admin settings renders configured or empty measurement ranges", async ({ p
     }
     expect(errors).toEqual([]);
   } finally {
-    await page.request.post("/api/auth/logout", { headers: { origin } });
+    await page.request.post("/api/admin/auth/logout", { headers: { origin } });
   }
 });
 
@@ -158,7 +174,8 @@ test("AT-16: guest checkout, public tracking, and private order isolation", asyn
     await page.getByRole("link", { name: "Continue to checkout" }).click();
 
     await page.getByLabel("Email address").fill(email);
-    await page.getByLabel("Full name").fill("Playwright Customer");
+    await page.getByLabel("First name").fill("Playwright");
+    await page.getByLabel("Last name").fill("Customer");
     await page.getByLabel("Phone number").fill("9876543210");
     await page.getByLabel("Address line 1").fill("1 Playwright Street");
     await page.getByLabel("City").fill("Mumbai");
@@ -195,15 +212,13 @@ test("AT-16: guest checkout, public tracking, and private order isolation", asyn
     await publicPage.getByLabel("Order number").fill("FLR-0000-000000");
     await publicPage.getByRole("button", { name: "Track order", exact: true }).click();
     await expect(publicPage.getByRole("alert")).toHaveText("No order found. Check your order number.");
-    await publicPage.goto(`${origin}/account/orders`);
-    await expect(publicPage).toHaveURL(/\/track-order$/);
     const ownOrder = await request.get(`/api/orders/${orderId}`);
     expect(ownOrder.ok()).toBe(true);
-    expect((await ownOrder.json()).contactSnapshot.email).toBe(email);
-    expect((await otherGuest.get(`/api/orders/${orderId}`)).status()).toBe(401);
+    expect((await ownOrder.json()).email).toBe(email);
+    expect((await otherGuest.get(`/api/orders/${orderId}`)).status()).toBe(404);
     const otherCheckout = await otherGuest.post("/api/orders", {
       headers: { origin },
-      data: { ...checkoutPayload, idempotencyKey: crypto.randomUUID(), customerEmail: email },
+      data: { ...checkoutPayload, idempotencyKey: crypto.randomUUID() },
     });
     expect(otherCheckout.ok()).toBe(true);
     otherOrderId = (await otherCheckout.json()).order.id;
@@ -212,7 +227,7 @@ test("AT-16: guest checkout, public tracking, and private order isolation", asyn
     expect((await request.post("/api/admin/auth/login", {
       headers: { origin }, data: { email, password: "not-an-admin-password" },
     })).status()).toBe(401);
-    expect((await request.post("/api/auth/register", { headers: { origin }, data: {} })).status()).toBe(410);
+    expect((await request.post("/api/auth/register", { headers: { origin }, data: {} })).status()).toBe(404);
     await page.goto(`${origin}${manageUrl}`);
     await expect(page).toHaveURL(/\/orders\/[^/]+$/);
     await expect(page.getByRole("heading", { name: orderNumber })).toBeVisible();

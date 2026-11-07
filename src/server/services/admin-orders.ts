@@ -10,10 +10,8 @@ import { enqueueEmailJob } from "@/server/email/outbox";
 import { auditJson, writeAuditEntry } from "@/server/services/audit";
 import { areAllOrderLinesReady, assertCanStartProduction, assertOrderLinesReadyForShipment } from "@/server/domain/fulfillment";
 import { parseMeasurementRanges, validateMeasurements } from "@/server/domain/measurements";
-import { readOrderContact } from "@/server/domain/order-contact";
 
 const orderInclude = {
-  customer: { select: { id: true, name: true, email: true, phone: true } },
   lines: { orderBy: { createdAt: "asc" as const }, include: { measurementVersions: { orderBy: { version: "asc" as const } } } },
   shipment: true,
   timeline: { orderBy: { createdAt: "asc" as const } },
@@ -37,26 +35,17 @@ export async function listAdminOrders(filters: { status?: string; paymentMethod?
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {
-      customer: { select: { name: true, email: true } },
       lines: { select: { id: true, productName: true, productType: true, quantity: true, size: true, isReady: true } },
       shipment: true,
     },
   });
   const now = systemClock.now().getTime();
-  return orders.map((order) => {
-    const contact = readOrderContact(order.contactSnapshot, {
-      name: order.customer.name,
-      email: order.customer.email,
-      phone: null,
-    });
-    return {
-      ...order,
-      customer: { ...order.customer, ...contact },
-      awaitingApprovalHours: order.fulfillmentStatus === "PENDING_APPROVAL"
-        ? Math.floor((now - order.createdAt.getTime()) / (60 * 60 * 1000))
-        : 0,
-    };
-  });
+  return orders.map((order) => ({
+    ...order,
+    awaitingApprovalHours: order.fulfillmentStatus === "PENDING_APPROVAL"
+      ? Math.floor((now - order.createdAt.getTime()) / (60 * 60 * 1000))
+      : 0,
+  }));
 }
 
 export async function getAdminOrder(orderId: string) {
@@ -67,14 +56,7 @@ export async function getAdminOrder(orderId: string) {
     where: { eventKey: { contains: orderId } },
     orderBy: { createdAt: "desc" },
   });
-  return {
-    ...order,
-    customer: {
-      ...order.customer,
-      ...readOrderContact(order.contactSnapshot, { name: order.customer.name, email: order.customer.email, phone: order.customer.phone }),
-    },
-    emailJobs,
-  };
+  return { ...order, emailJobs };
 }
 
 async function lockAdminOrder(transaction: Parameters<Parameters<typeof db.$transaction>[0]>[0], orderId: string) {
@@ -151,20 +133,16 @@ export async function approveOrder(orderId: string, noteInput?: unknown) {
     }
     assertFulfillmentTransition(order.fulfillmentStatus, "APPROVED", "ADMIN");
     const approved = await writeOrderTransition(transaction, { orderId, admin, from: order.fulfillmentStatus, to: "APPROVED", action: "ORDER_APPROVED", note });
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
-      const hasCustom = order.lines.some((line) => line.productType === "CUSTOM_DRESS");
-      await enqueueEmailJob(transaction, {
-        eventKey: `order-approved:${order.id}`,
-        template: "order-approved",
-        recipient: contact.email,
-        payload: {
-          subject: `Order ${order.orderNumber} approved`,
-          text: `${note}\nExpected dispatch: ${hasCustom ? "7–10 days" : "24–48 hours"} after approval.`,
-        },
-      });
-    }
+    const hasCustom = order.lines.some((line) => line.productType === "CUSTOM_DRESS");
+    await enqueueEmailJob(transaction, {
+      eventKey: `order-approved:${order.id}`,
+      template: "order-approved",
+      recipient: order.email,
+      payload: {
+        subject: `Order ${order.orderNumber} approved`,
+        text: `${note}\nExpected dispatch: ${hasCustom ? "7–10 days" : "24–48 hours"} after approval.`,
+      },
+    });
     return approved;
   });
 }
@@ -193,16 +171,12 @@ export async function rejectOrder(orderId: string, input: unknown) {
       before: auditJson({ fulfillmentStatus: order.fulfillmentStatus, paymentStatus: order.paymentStatus }),
       after: auditJson({ fulfillmentStatus: updated.fulfillmentStatus, paymentStatus: updated.paymentStatus, reason }),
     });
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
-      await enqueueEmailJob(transaction, {
-        eventKey: `order-rejected:${order.id}`,
-        template: "order-rejected",
-        recipient: contact.email,
-        payload: { subject: `Order ${order.orderNumber} update`, text: `${reason}${paymentStatus === "REFUND_REQUIRED" ? " Your payment refund is in progress." : ""}` },
-      });
-    }
+    await enqueueEmailJob(transaction, {
+      eventKey: `order-rejected:${order.id}`,
+      template: "order-rejected",
+      recipient: order.email,
+      payload: { subject: `Order ${order.orderNumber} update`, text: `${reason}${paymentStatus === "REFUND_REQUIRED" ? " Your payment refund is in progress." : ""}` },
+    });
     return updated;
   });
 }
@@ -235,19 +209,15 @@ export async function cancelOrderAsAdmin(orderId: string, input: unknown) {
       before: auditJson({ fulfillmentStatus: order.fulfillmentStatus, paymentStatus: order.paymentStatus }),
       after: auditJson({ fulfillmentStatus: updated.fulfillmentStatus, paymentStatus: updated.paymentStatus, reason: parsed.reason }),
     });
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
-      await enqueueEmailJob(transaction, {
-        eventKey: `order-cancelled:${order.id}`,
-        template: "order-cancelled",
-        recipient: contact.email,
-        payload: {
-          subject: `Order ${order.orderNumber} cancelled`,
-          text: `${parsed.reason}${paymentStatus === "REFUND_REQUIRED" ? " Your payment refund is in progress." : ""}`,
-        },
-      });
-    }
+    await enqueueEmailJob(transaction, {
+      eventKey: `order-cancelled:${order.id}`,
+      template: "order-cancelled",
+      recipient: order.email,
+      payload: {
+        subject: `Order ${order.orderNumber} cancelled`,
+        text: `${parsed.reason}${paymentStatus === "REFUND_REQUIRED" ? " Your payment refund is in progress." : ""}`,
+      },
+    });
     return updated;
   });
 }
@@ -480,19 +450,15 @@ export async function shipOrder(orderId: string, input: unknown, clock: Clock = 
       action: "ORDER_SHIPPED",
       note: `${parsed.courierName} · AWB ${parsed.awbNumber}`,
     });
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
-      await enqueueEmailJob(transaction, {
-        eventKey: `order-shipped:${order.id}`,
-        template: "order-shipped",
-        recipient: contact.email,
-        payload: {
-          subject: `Order ${order.orderNumber} shipped`,
-          text: `${parsed.courierName} · AWB ${parsed.awbNumber}${parsed.trackingUrl ? `\n${parsed.trackingUrl}` : ""}`,
-        },
-      });
-    }
+    await enqueueEmailJob(transaction, {
+      eventKey: `order-shipped:${order.id}`,
+      template: "order-shipped",
+      recipient: order.email,
+      payload: {
+        subject: `Order ${order.orderNumber} shipped`,
+        text: `${parsed.courierName} · AWB ${parsed.awbNumber}${parsed.trackingUrl ? `\n${parsed.trackingUrl}` : ""}`,
+      },
+    });
     return updated;
   });
 }
@@ -517,19 +483,15 @@ export async function markOrderDelivered(orderId: string, deliveredAtInput?: str
       action: "ORDER_DELIVERED",
       note: `Delivery recorded at ${deliveredAt.toISOString()}.`,
     });
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
-      await enqueueEmailJob(transaction, {
-        eventKey: `order-delivered:${order.id}`,
-        template: "order-delivered",
-        recipient: contact.email,
-        payload: {
-          subject: `Order ${order.orderNumber} delivered`,
-          text: "Your order has been marked delivered. Eligible replacement requests are available for four days from the recorded delivery time.",
-        },
-      });
-    }
+    await enqueueEmailJob(transaction, {
+      eventKey: `order-delivered:${order.id}`,
+      template: "order-delivered",
+      recipient: order.email,
+      payload: {
+        subject: `Order ${order.orderNumber} delivered`,
+        text: "Your order has been marked delivered. Eligible replacement requests are available for four days from the recorded delivery time.",
+      },
+    });
     const replacementHours = readReplacementWindowHours(order.settingsSnapshot);
     return { order: updated, replacementWindowExpired: deliveredAt.getTime() + replacementHours * 60 * 60 * 1000 <= now.getTime() };
   });

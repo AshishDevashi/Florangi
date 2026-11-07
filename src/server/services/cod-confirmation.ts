@@ -1,6 +1,5 @@
 import "server-only";
 
-import { requireCustomer } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { getEnvironment } from "@/server/env";
 import { systemClock, type Clock } from "@/server/domain/clock";
@@ -8,11 +7,11 @@ import { createCodConfirmationToken, parseCodConfirmationToken } from "@/server/
 import { auditJson, writeAuditEntry } from "@/server/services/audit";
 import { enqueueEmailJob } from "@/server/email/outbox";
 import type { Prisma } from "@prisma/client";
-import { readOrderContact } from "@/server/domain/order-contact";
+import { issueGuestOrderAccessToken } from "@/server/guest-order-access";
 
 export async function enqueueCodConfirmation(
   transaction: Prisma.TransactionClient,
-  input: { orderId: string; orderNumber: string; customerEmail: string; clock?: Clock; reminder?: boolean },
+  input: { orderId: string; orderNumber: string; customerEmail: string; guestAccessToken?: string; clock?: Clock; reminder?: boolean },
 ): Promise<void> {
   const environment = getEnvironment();
   const clock = input.clock ?? systemClock;
@@ -26,6 +25,7 @@ export async function enqueueCodConfirmation(
   if (existingJob) return;
   const expiresAt = new Date(clock.now().getTime() + 48 * 60 * 60 * 1000);
   const token = createCodConfirmationToken(input.orderId, expiresAt, environment.SESSION_SECRET);
+  const guestAccessToken = input.guestAccessToken ?? await issueGuestOrderAccessToken(transaction, input.orderId);
   await transaction.orderConfirmationToken.create({
     data: {
       orderId: input.orderId,
@@ -41,7 +41,7 @@ export async function enqueueCodConfirmation(
       orderId: input.orderId,
       subject: `${reminder ? "Reminder: " : ""}confirm your custom order ${input.orderNumber}`,
       text: `${reminder ? "This is your 24-hour reminder. " : ""}Confirm that you intend to accept this made-to-measure Cash on Delivery order. Opening this link does not confirm the order; submit the form on the page.`,
-      url: `${environment.APP_URL}/orders/${input.orderId}/confirm-cod#token=${encodeURIComponent(token)}`,
+      url: `${environment.APP_URL}/orders/${input.orderId}/confirm-cod#token=${encodeURIComponent(token)}&access=${encodeURIComponent(guestAccessToken)}`,
     },
   });
 }
@@ -68,7 +68,7 @@ export async function enqueueCodConfirmationReminders(clock: Clock = systemClock
       await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${candidate.id} FOR UPDATE`;
       const order = await transaction.order.findUnique({
         where: { id: candidate.id },
-        include: { customer: { select: { name: true, email: true, phone: true } }, lines: { select: { productType: true } } },
+        include: { lines: { select: { productType: true } } },
       });
       if (
         !order ||
@@ -79,19 +79,15 @@ export async function enqueueCodConfirmationReminders(clock: Clock = systemClock
         order.createdAt > dueBefore ||
         !order.lines.some((line) => line.productType === "CUSTOM_DRESS")
       ) return false;
-      const contact = readOrderContact(order.contactSnapshot, {
-        name: order.customer.name,
-        email: order.customer.email,
-        phone: order.customer.phone,
-      });
       const before = await transaction.emailJob.count({
-        where: { eventKey: `cod-confirmation-reminder:${order.id}`, template: "cod-confirmation-reminder", recipient: contact.email.toLowerCase() },
+        where: { eventKey: `cod-confirmation-reminder:${order.id}`, template: "cod-confirmation-reminder", recipient: order.email.toLowerCase() },
       });
       if (before > 0) return false;
       await enqueueCodConfirmation(transaction, {
         orderId: order.id,
         orderNumber: order.orderNumber,
-        customerEmail: contact.email,
+        customerEmail: order.email,
+        guestAccessToken: await issueGuestOrderAccessToken(transaction, order.id),
         clock,
         reminder: true,
       });
@@ -103,16 +99,6 @@ export async function enqueueCodConfirmationReminders(clock: Clock = systemClock
 }
 
 export async function confirmCustomCodOrder(orderId: string, token: string, clock: Clock = systemClock) {
-  const customer = await requireCustomer();
-  return confirmCustomCodOrderForCustomer(customer, orderId, token, clock);
-}
-
-export async function confirmCustomCodOrderForCustomer(
-  customer: { id: string; email: string; name: string | null },
-  orderId: string,
-  token: string,
-  clock: Clock = systemClock,
-) {
   const environment = getEnvironment();
   const now = clock.now();
   const parsed = parseCodConfirmationToken(token, environment.SESSION_SECRET, now);
@@ -121,7 +107,7 @@ export async function confirmCustomCodOrderForCustomer(
   return db.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
     const order = await transaction.order.findFirst({
-      where: { id: orderId, customerId: customer.id },
+      where: { id: orderId },
       include: { lines: true },
     });
     if (!order) throw new RangeError("Order not found.");
@@ -149,8 +135,7 @@ export async function confirmCustomCodOrderForCustomer(
     await transaction.orderTimelineEvent.create({
       data: {
         orderId: order.id,
-        actorUserId: customer.id,
-        actorName: customer.name ?? customer.email,
+        actorName: `${order.firstName} ${order.lastName}`,
         action: "CUSTOM_ORDER_CONFIRMED",
         fromState: order.fulfillmentStatus,
         toState: order.fulfillmentStatus,
@@ -158,7 +143,6 @@ export async function confirmCustomCodOrderForCustomer(
       },
     });
     await writeAuditEntry(transaction, {
-      actorUserId: customer.id,
       actorType: "USER",
       action: "CUSTOM_ORDER_CONFIRMED",
       entity: "Order",

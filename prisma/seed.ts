@@ -32,18 +32,14 @@ async function main() {
     throw new Error("Set ADMIN_EMAIL and an ADMIN_PASSWORD of at least 12 characters before seeding.");
   }
 
-  const existingAdmin = await prisma.user.findUnique({ where: { email } });
+  const existingAdmin = await prisma.adminUser.findUnique({ where: { email } });
   if (!existingAdmin) {
-    await prisma.user.create({
+    await prisma.adminUser.create({
       data: {
         email,
         passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
-        role: "ADMIN",
-        emailVerifiedAt: new Date(),
       },
     });
-  } else if (existingAdmin.role !== "ADMIN") {
-    throw new Error("ADMIN_EMAIL already belongs to a customer; refusing to change its role automatically.");
   }
 
   if (process.env.NODE_ENV !== "production") {

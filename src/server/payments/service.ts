@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { requireCustomer } from "@/server/auth/guards";
+import { requireGuestOrderAccess, guestOrderAccessUrl, issueGuestOrderAccessToken } from "@/server/guest-order-access";
 import { db } from "@/server/db";
 import { getEnvironment } from "@/server/env";
 import { assertFulfillmentTransition } from "@/server/domain/order-state";
@@ -13,7 +13,6 @@ import { enqueueEmailJob } from "@/server/email/outbox";
 import { auditJson, writeAuditEntry } from "@/server/services/audit";
 import { getPaymentProvider } from "@/server/payments/provider";
 import { verifyAndCompleteRefund } from "@/server/payments/refunds";
-import { readOrderContact } from "@/server/domain/order-contact";
 
 function mockSecret(): Buffer {
   return createHash("sha256").update(`${getEnvironment().SESSION_SECRET}:florangi-mock-payment`).digest();
@@ -50,13 +49,13 @@ export function verifyPaymentWebhookSignature(rawBody: string, signature: string
   return safeEqualHex(expected, signature);
 }
 
-export async function createProviderOrderForCustomer(orderId: string) {
-  const customer = await requireCustomer();
+export async function createProviderOrderForGuest(orderId: string) {
+  await requireGuestOrderAccess(orderId);
   const environment = getEnvironment();
   return db.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
     const order = await transaction.order.findFirst({
-      where: { id: orderId, customerId: customer.id },
+      where: { id: orderId },
       include: { paymentAttempts: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
     if (!order) throw new RangeError("Order not found.");
@@ -187,7 +186,7 @@ export async function reconcileCapturedPayment(providerOrderId: string, paymentI
         before: auditJson({ fulfillmentStatus: order.fulfillmentStatus, paymentStatus: order.paymentStatus }),
         after: auditJson({ fulfillmentStatus: lateOrder.fulfillmentStatus, paymentStatus: lateOrder.paymentStatus, paymentAttemptId: paymentAttempt.id }),
       });
-      const admin = await transaction.user.findFirst({ where: { role: "ADMIN" }, select: { email: true } });
+      const admin = await transaction.adminUser.findFirst({ select: { email: true } });
       if (admin) {
         await enqueueEmailJob(transaction, {
           eventKey: `late-capture-refund:${order.id}:${paymentId}`,
@@ -226,40 +225,28 @@ export async function reconcileCapturedPayment(providerOrderId: string, paymentI
       after: auditJson({ fulfillmentStatus: paidOrder.fulfillmentStatus, paymentStatus: paidOrder.paymentStatus, paymentAttemptId: paymentAttempt.id }),
     });
 
-    const cart = await transaction.cart.findUnique({ where: { userId: order.customerId } });
-    if (cart) {
-      for (const line of order.lines) {
-        if (!line.sourceCartLineId) continue;
-        await transaction.cartLine.deleteMany({
-          where: {
-            id: line.sourceCartLineId,
-            cartId: cart.id,
-            quantity: line.quantity,
-            acceptedUnitPaise: line.unitPricePaise,
-            quoteVersion: line.sourceCartQuoteVersion,
-          },
-        });
-      }
-    }
-
-    const customer = await transaction.user.findUnique({ where: { id: order.customerId }, select: { email: true } });
-    if (customer) {
-      const contact = readOrderContact(order.contactSnapshot, { name: null, email: customer.email, phone: null });
+    const existingReceipt = await transaction.emailJob.findFirst({
+      where: { eventKey: `order-received:${order.id}`, template: "order-received", recipient: order.email },
+      select: { id: true },
+    });
+    if (!existingReceipt) {
+      const accessToken = await issueGuestOrderAccessToken(transaction, order.id);
       await enqueueEmailJob(transaction, {
         eventKey: `order-received:${order.id}`,
         template: "order-received",
-        recipient: contact.email,
+        recipient: order.email,
         payload: {
           subject: `Order ${order.orderNumber} received`,
           text: receiptText(order),
           orderNumber: order.orderNumber,
+          url: guestOrderAccessUrl(order.id, accessToken),
         },
       });
       if (order.lines.some((line) => line.productType === "CUSTOM_DRESS")) {
         await enqueueEmailJob(transaction, {
           eventKey: `measurement-check:${order.id}`,
           template: "measurement-check",
-          recipient: contact.email,
+          recipient: order.email,
           payload: {
             subject: `Measurements for order ${order.orderNumber}`,
             text: "Please check the measurements saved with your custom order. You may request a correction during the initial 12-hour check period, before production starts.",
@@ -268,7 +255,7 @@ export async function reconcileCapturedPayment(providerOrderId: string, paymentI
         });
       }
     }
-    const admin = await transaction.user.findFirst({ where: { role: "ADMIN" }, select: { email: true } });
+    const admin = await transaction.adminUser.findFirst({ select: { email: true } });
     if (admin) {
       await enqueueEmailJob(transaction, {
         eventKey: `new-order:${order.id}`,
@@ -281,26 +268,26 @@ export async function reconcileCapturedPayment(providerOrderId: string, paymentI
   });
 }
 
-export async function verifyCustomerPayment(input: unknown) {
-  const customer = await requireCustomer();
+export async function verifyGuestPayment(input: unknown) {
   const parsed = z.object({
     razorpay_order_id: z.string().min(1),
     razorpay_payment_id: z.string().min(1),
     razorpay_signature: z.string().regex(/^[a-f0-9]{64}$/i),
   }).parse(input);
   const order = await db.order.findFirst({
-    where: { customerId: customer.id, razorpayOrderId: parsed.razorpay_order_id },
+    where: { razorpayOrderId: parsed.razorpay_order_id },
     select: { id: true },
   });
   if (!order) throw new RangeError("Payment order not found.");
+  await requireGuestOrderAccess(order.id);
   if (!verifyPaymentSignature(parsed.razorpay_order_id, parsed.razorpay_payment_id, parsed.razorpay_signature)) {
     throw new RangeError("Payment signature is invalid.");
   }
   return reconcileCapturedPayment(parsed.razorpay_order_id, parsed.razorpay_payment_id);
 }
 
-export async function captureMockPaymentForCustomer(orderId: string) {
-  const customer = await requireCustomer();
+export async function captureMockPaymentForGuest(orderId: string) {
+  await requireGuestOrderAccess(orderId);
   const environment = getEnvironment();
   if (environment.NODE_ENV === "production" || environment.PAYMENT_DRIVER !== "mock") {
     throw new RangeError("Mock payment capture is available only in development and test.");
@@ -308,7 +295,7 @@ export async function captureMockPaymentForCustomer(orderId: string) {
   const paymentId = `mock_payment_${randomBytes(16).toString("hex")}`;
   const attempt = await db.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
-    const order = await transaction.order.findFirst({ where: { id: orderId, customerId: customer.id } });
+    const order = await transaction.order.findFirst({ where: { id: orderId } });
     if (!order || !order.razorpayOrderId || order.fulfillmentStatus !== "PENDING_PAYMENT") {
       throw new RangeError("Order is not available for mock payment.");
     }

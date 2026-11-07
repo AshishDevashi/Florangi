@@ -1,19 +1,16 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/server/auth/session";
-import { getCustomerOrder } from "@/server/services/orders";
+import { getGuestOrder } from "@/server/services/orders";
 import { formatPaise } from "@/server/domain/money";
 import { getEnvironment } from "@/server/env";
 import { PaymentAction } from "@/components/checkout/payment-action";
+import { GuestOrderAccessGate } from "@/components/orders/guest-order-access-gate";
 
 export const instant = false;
 
 export default async function OrderConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "CUSTOMER" || (!user.emailVerifiedAt && !user.isGuestSession)) redirect("/");
   const { id } = await params;
-  const order = await getCustomerOrder(id);
-  if (!order) notFound();
+  const order = await getGuestOrder(id);
+  if (!order) return <main className="mx-auto min-h-screen w-full max-w-4xl px-5 py-6 sm:px-8"><GuestOrderAccessGate orderId={id} /></main>;
   const environment = getEnvironment();
 
   const cod = order.paymentMethod === "COD";

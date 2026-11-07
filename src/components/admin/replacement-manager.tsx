@@ -10,15 +10,14 @@ type Replacement = {
   decisionReason: string | null;
   logisticsNote: string | null;
   createdAt: string | Date;
-  order: { id: string; orderNumber: string; fulfillmentStatus: string; shipment: { deliveredAt: string | Date | null } | null };
-  customer: { name: string | null; email: string };
+  order: { id: string; orderNumber: string; firstName: string; lastName: string; email: string; fulfillmentStatus: string; shipment: { deliveredAt: string | Date | null } | null };
   lines: Array<{ id: string; desiredSize: string | null; fitCorrection: string | null; allocatedVariant: { size: string } | null; orderLine: { productName: string; productType: string; size: string | null } }>;
   photos: Array<{ id: string; signedUrl: string | null; mimeType: string }>;
 };
 
 export function ReplacementManager({ initialRequests }: { initialRequests: Replacement[] }) {
   const [requests, setRequests] = useState(initialRequests);
-  const [exception, setException] = useState({ customerId: "", orderId: "", orderLineId: "", productType: "DESIGNER_DRESS", currentSize: "XS", desiredSize: "S", fitCorrection: "", reason: "", notes: "" });
+  const [exception, setException] = useState({ orderId: "", orderLineId: "", productType: "DESIGNER_DRESS", currentSize: "XS", desiredSize: "S", fitCorrection: "", reason: "", notes: "" });
   const [decisionReasons, setDecisionReasons] = useState<Record<string, string>>({});
   const [logisticsNotes, setLogisticsNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -38,7 +37,6 @@ export function ReplacementManager({ initialRequests }: { initialRequests: Repla
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerId: exception.customerId,
           orderId: exception.orderId,
           reason: exception.reason,
           notes: exception.notes,
@@ -49,7 +47,7 @@ export function ReplacementManager({ initialRequests }: { initialRequests: Repla
       if (!response.ok) throw new Error(result.error ?? "Exception request could not be created.");
       const updatedRequests = await fetch("/api/admin/replacements", { cache: "no-store" }).then((result) => result.json() as Promise<Replacement[]>);
       setRequests(updatedRequests);
-      setException((current) => ({ ...current, customerId: "", orderId: "", orderLineId: "", reason: "", notes: "", fitCorrection: "" }));
+      setException((current) => ({ ...current, orderId: "", orderLineId: "", reason: "", notes: "", fitCorrection: "" }));
       setMessage("Replacement exception created and customer notified.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Exception request could not be created.");
@@ -112,7 +110,6 @@ export function ReplacementManager({ initialRequests }: { initialRequests: Repla
       {(error || message) && <p className={`mb-4 text-sm ${error ? "text-red-800" : "text-emerald-800"}`} role={error ? "alert" : "status"}>{error || message}</p>}
       <form className="mb-8 grid gap-3 border-b border-stone-200 pb-7 sm:grid-cols-2" onSubmit={createException}>
         <h2 className="font-serif text-2xl sm:col-span-2">Create customer exception</h2>
-        <label className="text-sm" htmlFor="exceptionCustomer">Customer ID<input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="exceptionCustomer" onChange={(event) => setException((current) => ({ ...current, customerId: event.target.value }))} required value={exception.customerId} /></label>
         <label className="text-sm" htmlFor="exceptionOrder">Order ID<input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="exceptionOrder" onChange={(event) => setException((current) => ({ ...current, orderId: event.target.value }))} required value={exception.orderId} /></label>
         <label className="text-sm" htmlFor="exceptionLine">Order line ID<input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="exceptionLine" onChange={(event) => setException((current) => ({ ...current, orderLineId: event.target.value }))} required value={exception.orderLineId} /></label>
         <label className="text-sm" htmlFor="exceptionType">Item type<select className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="exceptionType" onChange={(event) => setException((current) => ({ ...current, productType: event.target.value }))} value={exception.productType}><option value="DESIGNER_DRESS">Designer dress</option><option value="CUSTOM_DRESS">Custom dress</option></select></label>
@@ -129,7 +126,7 @@ export function ReplacementManager({ initialRequests }: { initialRequests: Repla
           {requests.map((request) => (
             <li className="py-6" key={request.id}>
               <header className="flex flex-wrap justify-between gap-3">
-                <div><h2 className="font-medium">{request.order.orderNumber} · {request.status}</h2><p className="mt-1 text-sm text-[var(--muted)]">{request.customer.name ?? request.customer.email} · {request.customer.email}</p></div>
+                <div><h2 className="font-medium">{request.order.orderNumber} · {request.status}</h2><p className="mt-1 text-sm text-[var(--muted)]">{request.order.firstName} {request.order.lastName} · {request.order.email}</p></div>
                 <a className="text-sm underline" href={`/admin/orders/${request.order.id}`}>Open order</a>
               </header>
               <p className="mt-4 text-sm"><span className="font-medium">Reason:</span> {request.reason}</p>

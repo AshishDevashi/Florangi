@@ -65,21 +65,6 @@ export function ProductOptions({ product }: { product: Product }) {
         return;
       }
 
-      const accountResponse = await fetch("/api/cart/lines", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...line, acceptedQuoteVersion: quotedLine.quoteVersion }),
-      });
-      if (accountResponse.ok) {
-        router.push("/cart");
-        return;
-      }
-      if (accountResponse.status !== 401) {
-        const result = await accountResponse.json() as { error?: string };
-        setMessage(result.error ?? "This item could not be added.");
-        return;
-      }
-
       const existing = localStorage.getItem("florangi-cart-v1");
       const guestLines = existing ? JSON.parse(existing) as Array<Record<string, unknown>> : [];
       guestLines.push({

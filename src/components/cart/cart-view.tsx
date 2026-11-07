@@ -64,35 +64,19 @@ async function getGuestQuote(lines: GuestLine[]): Promise<CartQuote> {
 }
 
 export function CartView() {
-  const [mode, setMode] = useState<"loading" | "error" | "guest" | "account">("loading");
+  const [mode, setMode] = useState<"loading" | "error" | "ready">("loading");
   const [quote, setQuote] = useState<CartQuote | null>(null);
-  const [guestQuote, setGuestQuote] = useState<CartQuote | null>(null);
   const [guestLines, setGuestLines] = useState<GuestLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   async function load() {
     setError("");
     const localLines = readGuestLines();
+    const nextQuote = await getGuestQuote(localLines);
     setGuestLines(localLines);
-    const accountResponse = await fetch("/api/cart", { cache: "no-store" });
-    if (accountResponse.ok) {
-      setMode("account");
-      setQuote(await accountResponse.json() as CartQuote);
-      if (localLines.length > 0) setGuestQuote(await getGuestQuote(localLines));
-      else setGuestQuote(null);
-      const mergeWarning = localStorage.getItem("florangi-cart-merge-warning");
-      if (mergeWarning) {
-        setNotice(mergeWarning);
-        localStorage.removeItem("florangi-cart-merge-warning");
-      }
-      return;
-    }
-    if (accountResponse.status !== 401) throw new Error("Your cart could not be loaded.");
-    setMode("guest");
-    setQuote(await getGuestQuote(localLines));
-    setGuestQuote(null);
+    setQuote(nextQuote);
+    setMode("ready");
   }
 
   useEffect(() => {
@@ -109,27 +93,15 @@ export function CartView() {
     setBusy(true);
     setError("");
     try {
-      if (mode === "account" && line.lineId) {
-        const response = await fetch("/api/cart/lines", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lineId: line.lineId, quantity }),
-        });
-        const result = await response.json() as { error?: string };
-        if (!response.ok) throw new Error(result.error ?? "Quantity could not be changed.");
-      } else {
-        const nextLines = guestLines.map((item) => item.lineId === line.lineId ? { ...item, quantity } : item);
-        const nextQuote = await getGuestQuote(nextLines);
-        const nextLine = nextQuote.lines.find((item) => item.lineId === line.lineId);
-        if (!nextLine || nextLine.state === "UNAVAILABLE" || nextLine.state === "INVALID") {
-          throw new Error(nextLine?.message ?? "This quantity is unavailable.");
-        }
-        setGuestLines(nextLines);
-        localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
-        setQuote(nextQuote);
-        return;
+      const nextLines = guestLines.map((item) => item.lineId === line.lineId ? { ...item, quantity } : item);
+      const nextQuote = await getGuestQuote(nextLines);
+      const nextLine = nextQuote.lines.find((item) => item.lineId === line.lineId);
+      if (!nextLine || nextLine.state === "UNAVAILABLE" || nextLine.state === "INVALID") {
+        throw new Error(nextLine?.message ?? "This quantity is unavailable.");
       }
-      await load();
+      setGuestLines(nextLines);
+      localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
+      setQuote(nextQuote);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Quantity could not be changed.");
     } finally {
@@ -141,16 +113,11 @@ export function CartView() {
     setBusy(true);
     setError("");
     try {
-      if (mode === "account" && line.lineId) {
-        const response = await fetch(`/api/cart/lines/${line.lineId}`, { method: "DELETE" });
-        if (!response.ok) throw new Error("Cart item could not be removed.");
-        await load();
-      } else {
-        const nextLines = guestLines.filter((item) => item.lineId !== line.lineId);
-        localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
-        setGuestLines(nextLines);
-        setQuote(await getGuestQuote(nextLines));
-      }
+      const nextLines = guestLines.filter((item) => item.lineId !== line.lineId);
+      const nextQuote = await getGuestQuote(nextLines);
+      localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
+      setGuestLines(nextLines);
+      setQuote(nextQuote);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Cart item could not be removed.");
     } finally {
@@ -162,18 +129,10 @@ export function CartView() {
     setBusy(true);
     setError("");
     try {
-      if (mode === "account") {
-        const response = await fetch("/api/cart/clear", { method: "DELETE" });
-        if (!response.ok) throw new Error("Cart could not be cleared.");
-        localStorage.removeItem("florangi-cart-v1");
-        setGuestLines([]);
-        setGuestQuote(null);
-        await load();
-      } else {
-        localStorage.removeItem("florangi-cart-v1");
-        setGuestLines([]);
-        setQuote(await getGuestQuote([]));
-      }
+      const nextQuote = await getGuestQuote([]);
+      localStorage.removeItem("florangi-cart-v1");
+      setGuestLines([]);
+      setQuote(nextQuote);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Cart could not be cleared.");
     } finally {
@@ -185,93 +144,21 @@ export function CartView() {
     setBusy(true);
     setError("");
     try {
-      if (mode === "account") {
-        const response = await fetch("/api/cart/accept", { method: "POST" });
-        const result = await response.json() as CartQuote & { error?: string };
-        if (!response.ok) throw new Error(result.error ?? "Updated prices could not be accepted.");
-        setQuote(result);
-      } else if (quote) {
-        const nextLines = guestLines.map((guestLine) => {
-          const current = quote.lines.find((line) => line.lineId === guestLine.lineId);
-          return current?.state === "PRICE_CHANGED"
-            ? { ...guestLine, acceptedUnitPaise: current.unitPricePaise, acceptedQuoteVersion: current.quoteVersion }
-            : guestLine;
-        });
-        const nextQuote = await getGuestQuote(nextLines);
-        setGuestLines(nextLines);
-        setQuote(nextQuote);
-        localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
-      }
+      if (!quote) return;
+      const nextLines = guestLines.map((guestLine) => {
+        const current = quote.lines.find((line) => line.lineId === guestLine.lineId);
+        return current?.state === "PRICE_CHANGED"
+          ? { ...guestLine, acceptedUnitPaise: current.unitPricePaise, acceptedQuoteVersion: current.quoteVersion }
+          : guestLine;
+      });
+      const nextQuote = await getGuestQuote(nextLines);
+      setGuestLines(nextLines);
+      setQuote(nextQuote);
+      localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Updated prices could not be accepted.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function acceptAndMergeGuestCart() {
-    setBusy(true);
-    setError("");
-    try {
-      if (!guestQuote) return;
-      const acceptedLines = guestLines.map((guestLine) => {
-        const current = guestQuote.lines.find((line) => line.lineId === guestLine.lineId);
-        return current?.unitPricePaise !== undefined
-          ? { ...guestLine, acceptedUnitPaise: current.unitPricePaise, acceptedQuoteVersion: current.quoteVersion }
-          : guestLine;
-      });
-      const response = await fetch("/api/cart/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(acceptedLines),
-      });
-      const result = await response.json() as { merged?: boolean; requiresReview?: boolean; excess?: unknown[]; quote?: CartQuote };
-      if (!response.ok) throw new Error("Guest cart could not be merged.");
-      if (!result.merged) {
-        setGuestLines(acceptedLines);
-        localStorage.setItem("florangi-cart-v1", JSON.stringify(acceptedLines));
-        if (result.quote) setGuestQuote(result.quote);
-        setError("Some guest items need a price, measurement, or stock review before merging.");
-        return;
-      }
-      localStorage.removeItem("florangi-cart-v1");
-      if (result.excess?.length) setNotice("Some quantities exceeded current stock; add the remaining quantity again if still needed.");
-      setGuestLines([]);
-      setGuestQuote(null);
-      await load();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Guest cart could not be merged.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updatePendingGuestLine(line: CartLine, quantity: number) {
-    if (!Number.isInteger(quantity) || quantity < 1) return;
-    const nextLines = guestLines.map((item) => item.lineId === line.lineId ? { ...item, quantity } : item);
-    try {
-      const nextQuote = await getGuestQuote(nextLines);
-      const nextLine = nextQuote.lines.find((item) => item.lineId === line.lineId);
-      if (!nextLine || nextLine.state === "UNAVAILABLE" || nextLine.state === "INVALID") {
-        setError(nextLine?.message ?? "This guest item is unavailable.");
-        return;
-      }
-      setGuestLines(nextLines);
-      setGuestQuote(nextQuote);
-      localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Guest quantity could not be changed.");
-    }
-  }
-
-  async function removePendingGuestLine(line: CartLine) {
-    const nextLines = guestLines.filter((item) => item.lineId !== line.lineId);
-    try {
-      setGuestLines(nextLines);
-      setGuestQuote(await getGuestQuote(nextLines));
-      localStorage.setItem("florangi-cart-v1", JSON.stringify(nextLines));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Guest item could not be removed.");
     }
   }
 
@@ -294,11 +181,10 @@ export function CartView() {
     );
   }
 
-  const hasItems = Boolean(quote?.lines.length || guestQuote?.lines.length);
+  const hasItems = Boolean(quote?.lines.length);
   return (
     <div>
       {error && <p className="mb-5 text-sm text-red-800" role="alert">{error}</p>}
-      {notice && <p className="mb-5 border-l-2 border-amber-700 bg-white px-4 py-3 text-sm text-amber-950" role="status">{notice}</p>}
       {!hasItems ? (
         <div className="border-t border-stone-200 py-10">
           <p className="text-[var(--muted)]">Your bag is empty.</p>
@@ -306,18 +192,9 @@ export function CartView() {
         </div>
       ) : (
         <>
-          {quote && <CartSection title={mode === "account" ? "Your bag" : "Guest bag"} quote={quote} busy={busy} onQuantity={updateQuantity} onRemove={removeLine} />}
-          {mode === "account" && guestQuote && (
-            <section className="mt-10 border-t border-stone-200 pt-7">
-              <h2 className="font-serif text-2xl">Guest items to merge</h2>
-              <CartLines quote={guestQuote} busy={busy} onQuantity={updatePendingGuestLine} onRemove={removePendingGuestLine} />
-              <button className="mt-5 min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || guestQuote.hasBlockingLines} onClick={() => void acceptAndMergeGuestCart()} type="button">
-                Review and merge guest items
-              </button>
-            </section>
-          )}
+          {quote && <CartSection quote={quote} busy={busy} onQuantity={updateQuantity} onRemove={removeLine} />}
           {quote?.needsAcceptance && (
-            <button className="mt-5 min-h-11 border border-[var(--accent)] px-5 text-sm font-semibold text-[var(--accent)] disabled:opacity-50" disabled={busy || quote?.hasBlockingLines} onClick={() => void acceptCurrentPrices()} type="button">
+            <button className="mt-5 min-h-11 border border-[var(--accent)] px-5 text-sm font-semibold text-[var(--accent)] disabled:opacity-50" disabled={busy || quote.hasBlockingLines} onClick={() => void acceptCurrentPrices()} type="button">
               Accept updated prices
             </button>
           )}
@@ -327,21 +204,18 @@ export function CartView() {
         </>
       )}
       <div className="mt-8">
-        {mode === "guest" && hasItems && quote?.lines.length && !quote.hasBlockingLines && !quote.needsAcceptance && <Link className="inline-flex min-h-11 items-center bg-[var(--accent)] px-5 text-sm font-semibold text-white" href="/checkout">Continue to checkout</Link>}
-        {mode === "account" && quote?.lines.length && !quote.hasBlockingLines && !quote.needsAcceptance && !guestQuote?.lines.length && <Link className="inline-flex min-h-11 items-center bg-[var(--accent)] px-5 text-sm font-semibold text-white" href="/checkout">Continue to checkout</Link>}
+        {quote?.lines.length && !quote.hasBlockingLines && !quote.needsAcceptance && <Link className="inline-flex min-h-11 items-center bg-[var(--accent)] px-5 text-sm font-semibold text-white" href="/checkout">Continue to checkout</Link>}
       </div>
     </div>
   );
 }
 
 function CartSection({
-  title,
   quote,
   busy,
   onQuantity,
   onRemove,
 }: {
-  title: string;
   quote: CartQuote;
   busy: boolean;
   onQuantity: (line: CartLine, quantity: number) => void;
@@ -349,7 +223,7 @@ function CartSection({
 }) {
   return (
     <section>
-      <h2 className="font-serif text-2xl">{title}</h2>
+      <h2 className="font-serif text-2xl">Your bag</h2>
       <CartLines quote={quote} busy={busy} onQuantity={onQuantity} onRemove={onRemove} />
       <div className="ml-auto mt-8 max-w-sm border-t border-stone-200 pt-4 text-sm">
         <div className="flex justify-between py-1"><span>Subtotal</span><span>{formatPaise(quote.subtotalPaise)}</span></div>

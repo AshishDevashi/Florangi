@@ -1,7 +1,8 @@
 import "server-only";
 
 import { z } from "zod";
-import { requireAdmin, requireCustomer, ResourceNotFoundError } from "@/server/auth/guards";
+import { requireAdmin, ResourceNotFoundError } from "@/server/auth/guards";
+import { requireGuestOrderAccess } from "@/server/guest-order-access";
 import { db } from "@/server/db";
 import { systemClock, type Clock } from "@/server/domain/clock";
 import { getStorageProvider } from "@/server/storage";
@@ -9,7 +10,6 @@ import type { StoredFile } from "@/server/storage/local";
 import { enqueueEmailJob } from "@/server/email/outbox";
 import { auditJson, writeAuditEntry } from "@/server/services/audit";
 import { isReplacementWindowOpen } from "@/server/domain/replacement-window";
-import { readOrderContact } from "@/server/domain/order-contact";
 
 const requestSchema = z.object({
   orderId: z.string().min(1),
@@ -21,7 +21,7 @@ const requestSchema = z.object({
     fitCorrection: z.string().trim().max(1000).optional(),
   })).min(1).max(10),
 });
-const exceptionRequestSchema = requestSchema.extend({ customerId: z.string().min(1) });
+const exceptionRequestSchema = requestSchema;
 
 function replacementWindowHours(snapshot: unknown): number {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
@@ -42,18 +42,13 @@ function validatePhotos(photos: Array<{ buffer: Buffer; mimeType: string; size: 
   }
 }
 
-export async function createCustomerReplacementRequest(input: unknown, photos: Array<{ buffer: Buffer; mimeType: string; size: number }>, clock: Clock = systemClock) {
-  const customer = await requireCustomer();
-  return createReplacementRequestForCustomer(customer, input, photos, clock);
-}
-
-export async function createReplacementRequestForCustomer(
-  customer: { id: string; email: string; name: string | null },
+export async function createGuestReplacementRequest(
   input: unknown,
   photos: Array<{ buffer: Buffer; mimeType: string; size: number }>,
   clock: Clock = systemClock,
 ) {
   const parsed = requestSchema.parse(input);
+  await requireGuestOrderAccess(parsed.orderId);
   if (new Set(parsed.lines.map((line) => line.orderLineId)).size !== parsed.lines.length) {
     throw new RangeError("Each order line can appear only once in a replacement request.");
   }
@@ -74,7 +69,7 @@ export async function createReplacementRequestForCustomer(
     return await db.$transaction(async (transaction) => {
       await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${parsed.orderId} FOR UPDATE`;
       const order = await transaction.order.findFirst({
-        where: { id: parsed.orderId, customerId: customer.id },
+        where: { id: parsed.orderId },
         include: { lines: true, shipment: true },
       });
       if (!order) throw new ResourceNotFoundError("Order not found.");
@@ -116,7 +111,6 @@ export async function createReplacementRequestForCustomer(
       const request = await transaction.replacementRequest.create({
         data: {
           orderId: order.id,
-          customerId: customer.id,
           reason: parsed.reason,
           notes: parsed.notes,
           lines: { create: parsed.lines },
@@ -148,10 +142,10 @@ export async function createAdminReplacementException(input: unknown) {
   return db.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${parsed.orderId} FOR UPDATE`;
     const order = await transaction.order.findFirst({
-      where: { id: parsed.orderId, customerId: parsed.customerId, fulfillmentStatus: "DELIVERED" },
+      where: { id: parsed.orderId, fulfillmentStatus: "DELIVERED" },
       include: { lines: true },
     });
-    if (!order) throw new RangeError("Choose a delivered order belonging to this customer.");
+    if (!order) throw new RangeError("Choose a delivered order.");
     const lineIds = parsed.lines.map((line) => line.orderLineId);
     const orderLines = order.lines.filter((line) => lineIds.includes(line.id));
     if (orderLines.length !== lineIds.length) throw new RangeError("Choose replacement lines from this delivered order.");
@@ -173,7 +167,6 @@ export async function createAdminReplacementException(input: unknown) {
     const request = await transaction.replacementRequest.create({
       data: {
         orderId: order.id,
-        customerId: parsed.customerId,
         reason: parsed.reason,
         notes: parsed.notes,
         exception: true,
@@ -181,9 +174,8 @@ export async function createAdminReplacementException(input: unknown) {
       },
       include: {
         lines: { include: { orderLine: { select: { productName: true, productType: true, size: true } } } },
-        customer: { select: { id: true, name: true, email: true } },
         photos: true,
-        order: { select: { id: true, orderNumber: true, fulfillmentStatus: true, contactSnapshot: true, shipment: true } },
+        order: { select: { id: true, orderNumber: true, fulfillmentStatus: true, firstName: true, lastName: true, email: true, shipment: true } },
       },
     });
     await transaction.orderTimelineEvent.create({
@@ -203,12 +195,12 @@ export async function createAdminReplacementException(input: unknown) {
       action: "REPLACEMENT_EXCEPTION_CREATED",
       entity: "ReplacementRequest",
       entityId: request.id,
-      after: auditJson({ orderId: order.id, customerId: parsed.customerId, reason: parsed.reason, exception: true }),
+      after: auditJson({ orderId: order.id, reason: parsed.reason, exception: true }),
     });
     await enqueueEmailJob(transaction, {
       eventKey: `replacement-update:${request.id}:OPEN`,
       template: "replacement-update",
-      recipient: readOrderContact(request.order.contactSnapshot, { name: request.customer.name, email: request.customer.email, phone: null }).email,
+      recipient: request.order.email,
       payload: { subject: `Replacement request opened for ${order.orderNumber}`, text: `Florangi opened a replacement request on your behalf. ${parsed.reason}` },
     });
     return request;
@@ -219,8 +211,7 @@ export async function listAdminReplacementRequests() {
   await requireAdmin();
   const requests = await db.replacementRequest.findMany({
     include: {
-      order: { select: { id: true, orderNumber: true, fulfillmentStatus: true, shipment: true } },
-      customer: { select: { id: true, name: true, email: true } },
+      order: { select: { id: true, orderNumber: true, fulfillmentStatus: true, firstName: true, lastName: true, email: true, phoneNumber: true, shipment: true } },
       lines: { include: { orderLine: { select: { productName: true, productType: true, size: true } }, allocatedVariant: true } },
       photos: true,
     },
@@ -254,7 +245,7 @@ export async function updateReplacementRequest(id: string, input: unknown, clock
     await transaction.$queryRaw`SELECT "id" FROM "ReplacementRequest" WHERE "id" = ${id} FOR UPDATE`;
     const request = await transaction.replacementRequest.findUnique({
       where: { id },
-      include: { lines: { include: { orderLine: true } }, order: true, customer: { select: { name: true, email: true } } },
+      include: { lines: { include: { orderLine: true } }, order: true },
     });
     if (!request) return null;
     if (parsed.status === "ACCEPTED" && request.status !== "OPEN") throw new RangeError("Only open replacement requests can be accepted.");
@@ -343,7 +334,7 @@ export async function updateReplacementRequest(id: string, input: unknown, clock
     await enqueueEmailJob(transaction, {
       eventKey: `replacement-update:${request.id}:${parsed.status}`,
       template: "replacement-update",
-      recipient: readOrderContact(request.order.contactSnapshot, { name: request.customer.name, email: request.customer.email, phone: null }).email,
+      recipient: request.order.email,
       payload: {
         subject: `Replacement request update for ${request.order.orderNumber}`,
         text: `${parsed.status}${parsed.decisionReason ? `\n${parsed.decisionReason}` : ""}${parsed.logisticsNote ? `\n${parsed.logisticsNote}` : ""}`,

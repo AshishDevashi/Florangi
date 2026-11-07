@@ -13,6 +13,25 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function deleteCategory(category: Category) {
+    if (!window.confirm(`Delete ${category.name}? This permanently removes the category and its images.`)) return;
+    setDeleting(category.id);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/admin/categories/${category.id}`, { method: "DELETE" });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Category could not be deleted.");
+      setCategories((current) => current.filter((item) => item.id !== category.id));
+      setMessage("Category deleted.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Category could not be deleted.");
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   async function changeImage(category: Category, position: number, file?: File) {
     setUploading(true);
@@ -87,7 +106,12 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
             <label className="text-sm" htmlFor={`slug-${category.id}`}>Slug<input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" defaultValue={category.slug} id={`slug-${category.id}`} maxLength={100} onBlur={(event) => event.target.value !== category.slug && void updateCategory(category, { slug: event.target.value })} /></label>
             <label className="text-sm" htmlFor={`order-${category.id}`}>Order<input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" defaultValue={category.sortOrder} id={`order-${category.id}`} min="0" onBlur={(event) => Number(event.target.value) !== category.sortOrder && void updateCategory(category, { sortOrder: Number(event.target.value) })} type="number" /></label>
             <label className="flex min-h-11 items-center gap-2 text-sm" htmlFor={`visible-${category.id}`}><input checked={category.visible} id={`visible-${category.id}`} onChange={(event) => void updateCategory(category, { visible: event.target.checked })} type="checkbox" />Visible</label>
-            <p className="pb-3 text-xs text-[var(--muted)]">{category._count.products} products</p>
+            <div className="space-y-2">
+              <p className="text-xs text-[var(--muted)]">{category._count.products} products</p>
+              <button aria-label={`Delete ${category.name}`} className="flex min-h-11 items-center gap-2 border border-red-800 px-3 text-sm text-red-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={category._count.products > 0 || uploading || deleting !== null} onClick={() => void deleteCategory(category)} title={category._count.products > 0 ? "Remove all linked products before deleting this category." : "Delete category"} type="button">
+                <Trash2 aria-hidden="true" size={16} />{deleting === category.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-5 md:col-span-5">
               {[0, 1].map((position) => {
                 const image = category.images.find((item) => item.position === position);
@@ -97,9 +121,9 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
                   <div className="mt-2 flex items-center gap-2">
                     <label className="relative flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 border border-stone-300 text-xs" title={image ? "Replace image" : "Upload image"}>
                       <ImagePlus aria-hidden="true" size={16} />{image ? "Replace" : "Upload"}
-                      <input accept="image/jpeg,image/png,image/webp" aria-label={`${category.name} image ${position + 1}`} className="absolute inset-0 cursor-pointer opacity-0" disabled={uploading} onChange={(event) => { if (event.target.files?.[0]) void changeImage(category, position, event.target.files[0]); event.currentTarget.value = ""; }} type="file" />
+                      <input accept="image/jpeg,image/png,image/webp" aria-label={`${category.name} image ${position + 1}`} className="absolute inset-0 cursor-pointer opacity-0" disabled={uploading || deleting !== null} onChange={(event) => { if (event.target.files?.[0]) void changeImage(category, position, event.target.files[0]); event.currentTarget.value = ""; }} type="file" />
                     </label>
-                    {image && <button aria-label={`Remove ${category.name} image ${position + 1}`} className="flex h-10 w-10 items-center justify-center border border-stone-300 text-red-800" disabled={uploading} onClick={() => void changeImage(category, position)} title="Remove image" type="button"><Trash2 aria-hidden="true" size={16} /></button>}
+                    {image && <button aria-label={`Remove ${category.name} image ${position + 1}`} className="flex h-10 w-10 items-center justify-center border border-stone-300 text-red-800" disabled={uploading || deleting !== null} onClick={() => void changeImage(category, position)} title="Remove image" type="button"><Trash2 aria-hidden="true" size={16} /></button>}
                   </div>
                 </div>;
               })}

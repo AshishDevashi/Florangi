@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useFragmentToken } from "@/components/auth/use-fragment-token";
+import { useFragmentToken } from "@/components/orders/use-fragment-token";
 
 export function CodConfirmationForm({ orderId }: { orderId: string }) {
   const token = useFragmentToken();

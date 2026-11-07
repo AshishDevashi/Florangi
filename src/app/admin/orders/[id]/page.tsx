@@ -74,11 +74,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         <aside className="space-y-7 border-t border-stone-200 pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
           <section>
             <h2 className="font-medium">Customer</h2>
-            <p className="mt-2 text-sm leading-6">{order.customer.name ?? "Customer"}<br /><a className="underline" href={`mailto:${order.customer.email}`}>{order.customer.email}</a><br />{order.customer.phone ?? "No profile phone"}</p>
+            <p className="mt-2 text-sm leading-6">{order.firstName} {order.lastName}<br /><a className="underline" href={`mailto:${order.email}`}>{order.email}</a><br />{order.phoneNumber}</p>
           </section>
           <section>
             <h2 className="font-medium">Delivery address</h2>
-            <address className="mt-2 text-sm not-italic leading-6 text-[var(--muted)]">{address.fullName}<br />{address.phone}<br />{address.line1}<br />{address.line2 && <>{address.line2}<br /></>}{address.landmark && <>{address.landmark}<br /></>}{address.city}, {address.state} {address.pinCode}</address>
+            <address className="mt-2 text-sm not-italic leading-6 text-[var(--muted)]">{address.line1}<br />{address.line2 && <>{address.line2}<br /></>}{address.landmark && <>{address.landmark}<br /></>}{address.city}, {address.state} {address.pinCode}</address>
           </section>
           {order.shipment && <section><h2 className="font-medium">Shipment</h2><p className="mt-2 text-sm leading-6">{order.shipment.courierName}<br />AWB {order.shipment.awbNumber}<br />Shipped {formatIndiaDateTime(order.shipment.shippedAt)}</p>{order.shipment.trackingUrl && <a className="mt-2 inline-block text-sm underline" href={order.shipment.trackingUrl} rel="noreferrer" target="_blank">Tracking link</a>}</section>}
           <section>
