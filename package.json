@@ -18,7 +18,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node --env-file=.env --import tsx prisma/seed.ts",
     "worker": "node --conditions=react-server --env-file=.env --import tsx src/server/worker.ts",
-    "storage:migrate-cloudinary": "node --env-file=.env --import tsx scripts/migrate-storage-to-cloudinary.ts"
+    "storage:migrate-cloudinary": "node --conditions=react-server --env-file=.env --import tsx scripts/migrate-storage-to-cloudinary.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

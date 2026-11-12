@@ -108,11 +108,23 @@ export function verifyPrivateFileSignature(
   expiresAt: number,
   signature: string,
   clock: Clock = systemClock,
+  provider: "local" | "cloudinary" = "local",
 ): boolean {
   if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(clock.now().getTime() / 1000)) return false;
-  const expected = Buffer.from(sign(key, expiresAt));
+  const expected = Buffer.from(sign(provider === "local" ? key : `${provider}:${key}`, expiresAt));
   const actual = Buffer.from(signature);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+export function privateFileUrl(key: string, provider: "local" | "cloudinary", expiresInSec: number): string {
+  if (!Number.isSafeInteger(expiresInSec) || expiresInSec <= 0) {
+    throw new RangeError("Signed URL lifetime must be a positive number of seconds.");
+  }
+  const expiresAt = Math.floor(systemClock.now().getTime() / 1000) + expiresInSec;
+  const signature = sign(provider === "local" ? key : `${provider}:${key}`, expiresAt);
+  const params = new URLSearchParams({ key, expires: String(expiresAt), sig: signature });
+  if (provider !== "local") params.set("provider", provider);
+  return `/api/storage/private?${params}`;
 }
 
 export class LocalStorageProvider implements StorageProvider {
@@ -153,12 +165,7 @@ export class LocalStorageProvider implements StorageProvider {
 
   async getSignedUrl(file: StoredFile, expiresInSec: number): Promise<string> {
     if (file.provider !== "local") throw new TypeError("This local adapter cannot sign another provider's files.");
-    if (!Number.isSafeInteger(expiresInSec) || expiresInSec <= 0) {
-      throw new RangeError("Signed URL lifetime must be a positive number of seconds.");
-    }
-    const expiresAt = Math.floor(systemClock.now().getTime() / 1000) + expiresInSec;
-    const signature = sign(file.key, expiresAt);
-    return `/api/storage/private?key=${encodeURIComponent(file.key)}&expires=${expiresAt}&sig=${signature}`;
+    return privateFileUrl(file.key, "local", expiresInSec);
   }
 
   async readPrivate(key: string): Promise<Buffer> {

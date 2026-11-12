@@ -8,14 +8,15 @@ import { getStorageProvider } from "@/server/storage";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const key = url.searchParams.get("key") ?? "";
+  const provider = url.searchParams.get("provider") ?? "local";
   const expires = Number(url.searchParams.get("expires"));
   const signature = url.searchParams.get("sig") ?? "";
-  if (!key || !verifyPrivateFileSignature(key, expires, signature)) {
+  if (!key || (provider !== "local" && provider !== "cloudinary") || !verifyPrivateFileSignature(key, expires, signature, undefined, provider)) {
     return new Response(null, { status: 404 });
   }
 
   const photo = await db.replacementPhoto.findFirst({
-    where: { provider: "local", key },
+    where: { provider, key },
     include: { request: { select: { orderId: true } } },
   });
   if (!photo) return new Response(null, { status: 404 });

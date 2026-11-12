@@ -28,15 +28,15 @@ export function EmailJobList({ jobs }: { jobs: EmailJob[] }) {
   }
 
   return (
-    <section className="mt-8 border-t border-stone-200 pt-6">
+    <section className="mt-8 border-t border-border pt-6">
       <h2 className="font-medium">Transactional emails</h2>
-      {error && <p className="mt-3 text-sm text-red-800" role="alert">{error}</p>}
-      {jobs.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">No email jobs for this order.</p> : (
-        <ul className="mt-3 divide-y divide-stone-200">
+      {error && <p className="mt-3 text-sm text-danger" role="alert">{error}</p>}
+      {jobs.length === 0 ? <p className="mt-3 text-sm text-muted">No email jobs for this order.</p> : (
+        <ul className="mt-3 divide-y divide-border">
           {jobs.map((job) => (
             <li className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm" key={job.id}>
-              <div><p className="font-medium">{job.template} · {job.status}</p><p className="mt-1 text-xs text-[var(--muted)]">{job.recipient} · {job.attemptCount} attempt(s){job.errorDetail ? ` · ${job.errorDetail}` : ""}</p></div>
-              {failedIds.has(job.id) && <button className="border border-stone-300 px-3 py-2 text-xs disabled:opacity-50" disabled={busy === job.id} onClick={() => void retry(job.id)} type="button">{busy === job.id ? "Retrying…" : "Retry"}</button>}
+              <div><p className="font-medium">{job.template} · {job.status}</p><p className="mt-1 text-xs text-muted">{job.recipient} · {job.attemptCount} attempt(s){job.errorDetail ? ` · ${job.errorDetail}` : ""}</p></div>
+              {failedIds.has(job.id) && <button className="border border-border-strong px-3 py-2 text-xs disabled:opacity-50" disabled={busy === job.id} onClick={() => void retry(job.id)} type="button">{busy === job.id ? "Retrying…" : "Retry"}</button>}
             </li>
           ))}
         </ul>

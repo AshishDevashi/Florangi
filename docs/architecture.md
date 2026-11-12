@@ -20,7 +20,7 @@ The browser is not authoritative for price, inventory, fulfillment state or acce
 
 ## Phase 1 status
 
-The schema, local Postgres Compose service, environment validation, Argon2id password helpers, database-backed admin sessions and admin guards are present. Authentication routes support admin login and logout only. The local storage provider validates JPEG/PNG/WebP bytes, limits uploads to 5 MB and signs private file URLs. The email outbox currently implements the encrypted development driver only. Payment, fulfillment, worker and storefront business workflows follow in later phases.
+The schema, local Postgres Compose service, environment validation, Argon2id password helpers, database-backed admin sessions and admin guards are present. Authentication routes support admin login and logout only. Storage validates JPEG/PNG/WebP bytes, limits uploads to 5 MB and serves private files through authenticated expiring application links. Cloudinary and local storage, Razorpay and mock payments, and Resend and development email drivers are available.
 
 ## Phase 2 status
 

@@ -66,11 +66,11 @@ export function PaymentAction({ orderId, mode }: { orderId: string; mode: "mock"
 
   return (
     <div className="mt-5">
-      <button className="min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => void retryPayment()} type="button">
+      <button className="min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={busy} onClick={() => void retryPayment()} type="button">
         {busy ? "Opening payment…" : mode === "mock" ? "Simulate captured payment" : "Retry payment"}
       </button>
-      {mode === "mock" && <p className="mt-2 text-xs text-[var(--muted)]">Development payment simulation only.</p>}
-      {error && <p className="mt-2 text-sm text-red-800" role="alert">{error}</p>}
+      {mode === "mock" && <p className="mt-2 text-xs text-muted">Development payment simulation only.</p>}
+      {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
     </div>
   );
 }

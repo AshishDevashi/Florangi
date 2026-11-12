@@ -250,7 +250,7 @@ export function CheckoutForm() {
     }
   }
 
-  if (loading) return <p className="py-10 text-sm text-[var(--muted)]" role="status">Loading checkout…</p>;
+  if (loading) return <p className="py-10 text-sm text-muted" role="status">Loading checkout…</p>;
 
   const containsCustom = cart?.lines.some((line) => line.type === "CUSTOM_DRESS") ?? false;
   return (
@@ -263,7 +263,7 @@ export function CheckoutForm() {
               {field.label}
               <input
                 autoComplete={field.autocomplete}
-                className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3"
+                className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3"
                 id={field.name}
                 name={field.name}
                 onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
@@ -276,7 +276,7 @@ export function CheckoutForm() {
           ))}
           <label className="text-sm sm:col-span-2" htmlFor="checkoutEmail">
             Email address
-            <input autoComplete="email" className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3 sm:max-w-md" id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} />
+            <input autoComplete="email" className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3 sm:max-w-md" id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} />
           </label>
         </fieldset>
         <fieldset className="grid gap-4 sm:grid-cols-2">
@@ -286,7 +286,7 @@ export function CheckoutForm() {
               {field.label}
               <input
                 autoComplete={field.autocomplete}
-                className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3 outline-none focus:border-accent focus:ring-2 focus:ring-focus/20"
                 id={field.name}
                 maxLength={field.name === "pinCode" ? 6 : 240}
                 name={field.name}
@@ -295,34 +295,34 @@ export function CheckoutForm() {
                 required={!(("optional" in field) && field.optional)}
                 value={values[field.name]}
               />
-              {field.name === "pinCode" && <span className="mt-1 block text-xs text-[var(--muted)]">India only · six-digit PIN</span>}
+              {field.name === "pinCode" && <span className="mt-1 block text-xs text-muted">India only · six-digit PIN</span>}
             </label>
           ))}
         </fieldset>
 
-        <fieldset className="space-y-3 border-t border-stone-200 pt-6">
+        <fieldset className="space-y-3 border-t border-border pt-6">
           <legend className="font-serif text-2xl">Payment method</legend>
-          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "ONLINE" ? "border-[var(--accent)] bg-white" : "border-stone-300"}`}>
+          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "ONLINE" ? "border-accent bg-surface" : "border-border-strong"}`}>
             <input checked={paymentMethod === "ONLINE"} name="paymentMethod" onChange={() => void changePaymentMethod("ONLINE")} type="radio" />
             <span className="text-sm font-medium">Pay online</span>
           </label>
-          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "COD" ? "border-[var(--accent)] bg-white" : "border-stone-300"}`}>
+          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "COD" ? "border-accent bg-surface" : "border-border-strong"}`}>
             <input checked={paymentMethod === "COD"} name="paymentMethod" onChange={() => void changePaymentMethod("COD")} type="radio" />
             <span className="text-sm font-medium">Cash on Delivery</span>
           </label>
           {paymentMethod === "COD" && containsCustom && (
-            <p className="border-l-2 border-amber-700 bg-white px-4 py-3 text-sm leading-6 text-amber-950">This dress is made to your measurements and cannot be resold. Please place a Cash on Delivery order only if you intend to accept delivery.</p>
+            <p className="border-l-2 border-warning-border bg-surface px-4 py-3 text-sm leading-6 text-warning">This dress is made to your measurements and cannot be resold. Please place a Cash on Delivery order only if you intend to accept delivery.</p>
           )}
         </fieldset>
-        {error && <p className="text-sm text-red-800" role="alert">{error}</p>}
-        <button className="min-h-12 w-full bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-50 sm:w-auto" disabled={busy || !quote || !cart || cart.hasBlockingLines || cart.needsAcceptance} type="submit">
+        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+        <button className="min-h-12 w-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:cursor-wait disabled:opacity-50 sm:w-auto" disabled={busy || !quote || !cart || cart.hasBlockingLines || cart.needsAcceptance} type="submit">
           {busy ? "Placing order…" : paymentMethod === "COD" ? "Place Cash on Delivery order" : "Place order"}
         </button>
       </form>
 
-      <aside className="h-fit border-t border-stone-200 pt-5 lg:border-l lg:border-t-0 lg:pl-6">
+      <aside className="h-fit border-t border-border pt-5 lg:border-l lg:border-t-0 lg:pl-6">
         <h2 className="font-serif text-2xl">Order summary</h2>
-        <ul className="mt-4 divide-y divide-stone-200 text-sm">
+        <ul className="mt-4 divide-y divide-border text-sm">
           {cart?.lines.map((line) => (
             <li className="flex justify-between gap-4 py-3" key={line.lineId}>
               <span>{line.productName ?? "Dress"} · {line.type === "CUSTOM_DRESS" ? "Custom" : line.size} × {line.quantity}</span>
@@ -330,10 +330,10 @@ export function CheckoutForm() {
             </li>
           ))}
         </ul>
-        <div className="mt-4 space-y-2 border-t border-stone-200 pt-4 text-sm">
+        <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
           <SummaryRow label="Subtotal" value={quote?.subtotalPaise} />
           <SummaryRow label="Shipping" value={quote?.shippingFeePaise} />
-          <div className="flex justify-between border-t border-stone-200 pt-3 font-semibold"><span>Total</span><span>{formatPaise(quote?.totalPaise ?? 0)}</span></div>
+          <div className="flex justify-between border-t border-border pt-3 font-semibold"><span>Total</span><span>{formatPaise(quote?.totalPaise ?? 0)}</span></div>
         </div>
         <Link className="mt-5 inline-block text-xs underline" href="/cart">Return to bag</Link>
       </aside>

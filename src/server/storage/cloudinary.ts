@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { getEnvironment } from "@/server/env";
 import { systemClock } from "@/server/domain/clock";
-import { assertSafeFolder, validateImageContent, type StorageProvider, type StoredFile, type StorageVisibility } from "@/server/storage/local";
+import { assertSafeFolder, privateFileUrl, validateImageContent, type StorageProvider, type StoredFile, type StorageVisibility } from "@/server/storage/local";
 
 export class CloudinaryStorageProvider implements StorageProvider {
   constructor() {
@@ -60,15 +60,7 @@ export class CloudinaryStorageProvider implements StorageProvider {
 
   async getSignedUrl(file: StoredFile, expiresInSec: number): Promise<string> {
     if (file.provider !== "cloudinary") throw new TypeError("Cloudinary adapter cannot sign another provider's files.");
-    if (!Number.isSafeInteger(expiresInSec) || expiresInSec <= 0) throw new RangeError("Signed URL lifetime must be positive.");
-    const expiresAt = Math.floor(systemClock.now().getTime() / 1000) + expiresInSec;
-    return cloudinary.url(file.key, {
-      secure: true,
-      resource_type: "image",
-      type: "authenticated",
-      sign_url: true,
-      expires_at: expiresAt,
-    });
+    return privateFileUrl(file.key, "cloudinary", expiresInSec);
   }
 
   async readPrivate(key: string): Promise<Buffer> {
@@ -93,6 +85,11 @@ export class CloudinaryStorageProvider implements StorageProvider {
 
   async delete(file: StoredFile): Promise<void> {
     if (file.provider !== "cloudinary") throw new TypeError("Cloudinary adapter cannot delete another provider's files.");
-    await cloudinary.uploader.destroy(file.key, { resource_type: "image", type: "authenticated", invalidate: true });
+    for (const type of ["upload", "authenticated"] as const) {
+      const result = await cloudinary.uploader.destroy(file.key, { resource_type: "image", type, invalidate: true }) as { result?: string };
+      if (result.result !== "ok" && result.result !== "not found") {
+        throw new Error(`Cloudinary ${type} image deletion failed.`);
+      }
+    }
   }
 }

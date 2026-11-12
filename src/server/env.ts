@@ -33,7 +33,6 @@ const environmentSchema = z
     RAZORPAY_KEY_ID: z.string().optional(),
     RAZORPAY_KEY_SECRET: z.string().optional(),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
-    NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().optional(),
     CRON_SECRET: z.string().optional(),
     ADMIN_EMAIL: z.string().email().optional(),
     ADMIN_PASSWORD: z.string().min(12).optional(),
@@ -46,7 +45,7 @@ const environmentSchema = z
       context.addIssue({ code: "custom", path: ["EMAIL_DRIVER"], message: "The development email driver is forbidden in production." });
     }
     if (env.PAYMENT_DRIVER === "razorpay") {
-      for (const key of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET", "NEXT_PUBLIC_RAZORPAY_KEY_ID"] as const) {
+      for (const key of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"] as const) {
         if (!env[key]) context.addIssue({ code: "custom", path: [key], message: `${key} is required for Razorpay.` });
       }
     }

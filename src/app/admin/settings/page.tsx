@@ -31,9 +31,9 @@ export default async function AdminSettingsPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Store configuration</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">Store configuration</p>
       <h1 className="mt-2 font-serif text-4xl">Settings</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">Changes create a new effective-dated version. Existing orders retain their saved settings snapshot.</p>
+      <p className="mt-2 text-sm text-muted">Changes create a new effective-dated version. Existing orders retain their saved settings snapshot.</p>
       <div className="mt-7"><SettingsManager initialValues={initialValues} /></div>
     </main>
   );

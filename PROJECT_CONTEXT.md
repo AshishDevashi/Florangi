@@ -17,6 +17,7 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - `prisma/schema.prisma`, `prisma/migrations/`: data model and immutable deployed migration history; `prisma/seed.ts` seeds admin and development fixtures.
 - `tests/e2e/`: browser flows. `src/**/*.test.ts` are unit tests; `*.integration.test.ts` use a separate PostgreSQL database.
 - `docs/`: architecture, order state, owner decisions, recovery, backup/restore and storage migration procedures.
+- `docs/design-system.md`: approved Romantic Luxury palette and shared semantic color usage for storefront, admin, checkout and email.
 - `scripts/`: operational migration scripts. `public/`: static assets. Root configs define Next, TypeScript, ESLint, Vitest and Playwright.
 
 ## Product behavior and invariants

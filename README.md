@@ -19,7 +19,17 @@ Customers shop and check out as guests; no customer account or login is availabl
 
 Open `/admin` to sign in with the predefined `ADMIN_EMAIL` and `ADMIN_PASSWORD` configured before seeding. Only admin identities can use this login. Change development credentials before deployment.
 
-Development transactional emails are encrypted in the database outbox and can be opened at `/dev/emails`. The default payment driver is `mock`; successful test capture is available from the order confirmation/details page. Set `PAYMENT_DRIVER=razorpay` and provide Razorpay test keys to exercise Standard Checkout. Set `EMAIL_DRIVER=resend` and provide `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_REPLY_TO` to send real transactional mail.
+Development transactional emails are encrypted in the database outbox and can be opened at `/dev/emails`. The default payment driver is `mock`; successful test capture is available from the order confirmation/details page.
+
+### Provider setup
+
+Keep credentials in `.env`, never in `.env.example` or source control. Rotate credentials if they have been exposed. Set `SESSION_SECRET` to the existing secret used for this database: changing it invalidates sessions and makes existing encrypted email jobs unreadable.
+
+- **Razorpay:** Set `PAYMENT_DRIVER=razorpay`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`. Start with matching test-mode keys. Configure a Razorpay webhook at the publicly accessible `APP_URL/api/razorpay/webhook` using the same webhook secret, and subscribe to `payment.captured`, `order.paid`, `payment.failed`, and `refund.processed`. The key ID is returned to checkout by the server; no separate public-key variable is required. Verify payment capture, webhooks and refunds in a test environment before using live keys.
+- **Cloudinary:** Set `STORAGE_DRIVER=cloudinary` and the three `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` values. New catalog images use public delivery; replacement photos use authenticated storage and are served through application-authorized expiring links. Existing local files remain local until explicitly migrated; see [storage migration](docs/storage-migration.md). Validate authenticated delivery and access controls on a staging account before production.
+- **Resend:** Set `EMAIL_DRIVER=resend`, `RESEND_API_KEY`, and `EMAIL_FROM` to a sender on a domain verified with Resend. Set `EMAIL_REPLY_TO` to a suitable reply address. A Gmail sender is not a substitute for domain verification. Run `npm run worker` continuously or configure the protected cron tick; queued order emails are not sent by the web process alone.
+
+Restart the app and worker after configuration changes. Do not switch a database with pending mock payments to Razorpay without reconciling those orders first. Provider configuration alone does not establish production readiness.
 
 ## Checks
 

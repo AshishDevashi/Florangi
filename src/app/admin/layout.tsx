@@ -11,13 +11,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-stone-200 bg-white">
+      <header className="border-b border-border bg-surface">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link className="font-serif text-2xl font-semibold" href="/admin">Florangi <span className="font-sans text-sm font-medium text-[var(--muted)]">Admin</span></Link>
+          <Link className="font-serif text-2xl font-medium" href="/admin">Florangi <span className="font-sans text-sm font-medium text-muted">Admin</span></Link>
           <AdminLogoutButton />
         </div>
       </header>
-      <nav aria-label="Admin navigation" className="border-b border-stone-200 bg-white">
+      <nav aria-label="Admin navigation" className="border-b border-border bg-surface">
         <div className="mx-auto flex w-full max-w-7xl gap-5 overflow-x-auto px-5 py-3 text-sm sm:px-8">
           <Link className="shrink-0 hover:underline" href="/admin">Overview</Link>
           <Link className="shrink-0 hover:underline" href="/admin/categories">Categories</Link>

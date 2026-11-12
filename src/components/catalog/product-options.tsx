@@ -90,7 +90,7 @@ export function ProductOptions({ product }: { product: Product }) {
           {product.variants.map((variant) => (
             <button
               aria-pressed={selectedVariant === variant.id}
-              className={`min-w-16 border px-3 py-2 text-sm ${selectedVariant === variant.id ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "border-stone-300"} disabled:cursor-not-allowed disabled:opacity-45`}
+              className={`min-w-16 border px-3 py-2 text-sm ${selectedVariant === variant.id ? "border-accent bg-accent text-on-accent" : "border-border-strong"} disabled:cursor-not-allowed disabled:opacity-45`}
               disabled={variant.available < 1}
               key={variant.id}
               onClick={() => setSelectedVariant(variant.id)}
@@ -103,8 +103,8 @@ export function ProductOptions({ product }: { product: Product }) {
         <p aria-live="polite" className="mt-4 text-sm">
           {activeVariant ? formatPaise(activeVariant.unitPricePaise) : "Currently sold out"}
         </p>
-        {message && <p className="mt-3 text-sm text-amber-900" role="status">{message}</p>}
-        <button className="mt-5 min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={!activeVariant || busy} onClick={() => void addLine()} type="button">
+        {message && <p className="mt-3 text-sm text-warning" role="status">{message}</p>}
+        <button className="mt-5 min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={!activeVariant || busy} onClick={() => void addLine()} type="button">
           {busy ? "Adding…" : `Add to bag · ${formatPaise(reviewedPrice ?? activeVariant?.unitPricePaise ?? 0)}`}
         </button>
       </fieldset>
@@ -123,28 +123,28 @@ export function ProductOptions({ product }: { product: Product }) {
         {measurements.map(([name, label]) => (
           <label className="text-sm" htmlFor={name} key={name}>
             {label}
-            <input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id={name} name={name} min="0" step="0.1" type="number" required />
+            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id={name} name={name} min="0" step="0.1" type="number" required />
           </label>
         ))}
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm" htmlFor="heightFeet">
             Height (feet)
-            <input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="heightFeet" name="heightFeet" min="1" step="1" type="number" required />
+            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id="heightFeet" name="heightFeet" min="1" step="1" type="number" required />
           </label>
           <label className="text-sm" htmlFor="heightInches">
             Inches
-            <input className="mt-1 block min-h-11 w-full border border-stone-300 bg-white px-3" id="heightInches" name="heightInches" min="0" max="11.9" step="0.1" type="number" required />
+            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id="heightInches" name="heightInches" min="0" max="11.9" step="0.1" type="number" required />
           </label>
         </div>
       </fieldset>
       <label className="block text-sm" htmlFor="fitNotes">
-        Fit notes <span className="text-[var(--muted)]">(optional)</span>
-        <textarea className="mt-1 block min-h-20 w-full border border-stone-300 bg-white px-3 py-2" id="fitNotes" maxLength={1000} name="fitNotes" />
+        Fit notes <span className="text-muted">(optional)</span>
+        <textarea className="mt-1 block min-h-20 w-full border border-border-strong bg-surface px-3 py-2" id="fitNotes" maxLength={1000} name="fitNotes" />
       </label>
       <p className="text-sm font-medium">Customization fee: {formatPaise(product.customizationFeePaise ?? 0)}</p>
       <p className="text-sm">Total: {formatPaise(reviewedPrice ?? product.basePricePaise + (product.customizationFeePaise ?? 0))}</p>
-      {message && <p className="text-sm text-amber-900" role="status">{message}</p>}
-      <button className="min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} type="submit">{busy ? "Adding…" : "Add to bag"}</button>
+      {message && <p className="text-sm text-warning" role="status">{message}</p>}
+      <button className="min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={busy} type="submit">{busy ? "Adding…" : "Add to bag"}</button>
     </form>
   );
 }

@@ -165,10 +165,10 @@ export function CartView() {
   if (mode === "loading" || mode === "error") {
     return (
       <div className="py-10">
-        {mode === "loading" ? <p className="text-sm text-[var(--muted)]" role="status">Loading your cart…</p> : (
+        {mode === "loading" ? <p className="text-sm text-muted" role="status">Loading your cart…</p> : (
           <div>
-            <p className="text-sm text-red-800" role="alert">{error}</p>
-            <button className="mt-4 border border-stone-300 px-4 py-2 text-sm" onClick={() => {
+            <p className="text-sm text-danger" role="alert">{error}</p>
+            <button className="mt-4 border border-border-strong px-4 py-2 text-sm" onClick={() => {
               setMode("loading");
               void load().catch((caught: unknown) => {
                 setError(caught instanceof Error ? caught.message : "Your cart could not be loaded.");
@@ -184,27 +184,27 @@ export function CartView() {
   const hasItems = Boolean(quote?.lines.length);
   return (
     <div>
-      {error && <p className="mb-5 text-sm text-red-800" role="alert">{error}</p>}
+      {error && <p className="mb-5 text-sm text-danger" role="alert">{error}</p>}
       {!hasItems ? (
-        <div className="border-t border-stone-200 py-10">
-          <p className="text-[var(--muted)]">Your bag is empty.</p>
+        <div className="border-t border-border py-10">
+          <p className="text-muted">Your bag is empty.</p>
           <Link className="mt-4 inline-block text-sm font-medium underline" href="/">Continue browsing</Link>
         </div>
       ) : (
         <>
           {quote && <CartSection quote={quote} busy={busy} onQuantity={updateQuantity} onRemove={removeLine} />}
           {quote?.needsAcceptance && (
-            <button className="mt-5 min-h-11 border border-[var(--accent)] px-5 text-sm font-semibold text-[var(--accent)] disabled:opacity-50" disabled={busy || quote.hasBlockingLines} onClick={() => void acceptCurrentPrices()} type="button">
+            <button className="mt-5 min-h-11 border border-accent px-5 text-sm font-semibold text-accent disabled:opacity-50" disabled={busy || quote.hasBlockingLines} onClick={() => void acceptCurrentPrices()} type="button">
               Accept updated prices
             </button>
           )}
-          <div className="mt-8 border-t border-stone-200 pt-5">
-            <button className="text-sm text-[var(--muted)] underline disabled:opacity-50" disabled={busy} onClick={() => void clearCart()} type="button">Clear bag</button>
+          <div className="mt-8 border-t border-border pt-5">
+            <button className="text-sm text-muted underline disabled:opacity-50" disabled={busy} onClick={() => void clearCart()} type="button">Clear bag</button>
           </div>
         </>
       )}
       <div className="mt-8">
-        {quote?.lines.length && !quote.hasBlockingLines && !quote.needsAcceptance && <Link className="inline-flex min-h-11 items-center bg-[var(--accent)] px-5 text-sm font-semibold text-white" href="/checkout">Continue to checkout</Link>}
+        {quote?.lines.length && !quote.hasBlockingLines && !quote.needsAcceptance && <Link className="inline-flex min-h-11 items-center bg-accent px-5 text-sm font-semibold text-on-accent" href="/checkout">Continue to checkout</Link>}
       </div>
     </div>
   );
@@ -225,11 +225,11 @@ function CartSection({
     <section>
       <h2 className="font-serif text-2xl">Your bag</h2>
       <CartLines quote={quote} busy={busy} onQuantity={onQuantity} onRemove={onRemove} />
-      <div className="ml-auto mt-8 max-w-sm border-t border-stone-200 pt-4 text-sm">
+      <div className="ml-auto mt-8 max-w-sm border-t border-border pt-4 text-sm">
         <div className="flex justify-between py-1"><span>Subtotal</span><span>{formatPaise(quote.subtotalPaise)}</span></div>
         <div className="flex justify-between py-1"><span>Shipping</span><span>{formatPaise(quote.shippingFeePaise)}</span></div>
-        <div className="mt-2 flex justify-between border-t border-stone-200 pt-3 font-semibold"><span>Total</span><span>{formatPaise(quote.totalPaise)}</span></div>
-        <p className="mt-3 text-xs text-[var(--muted)]">Cash on Delivery surcharge, if any, is shown at checkout.</p>
+        <div className="mt-2 flex justify-between border-t border-border pt-3 font-semibold"><span>Total</span><span>{formatPaise(quote.totalPaise)}</span></div>
+        <p className="mt-3 text-xs text-muted">Cash on Delivery surcharge, if any, is shown at checkout.</p>
       </div>
     </section>
   );
@@ -247,22 +247,22 @@ function CartLines({
   onRemove: (line: CartLine) => void;
 }) {
   return (
-    <ul className="mt-4 divide-y divide-stone-200">
+    <ul className="mt-4 divide-y divide-border">
       {quote.lines.map((line, index) => (
         <li className="grid gap-4 py-5 sm:grid-cols-[1fr_auto]" key={line.lineId ?? `${line.productId}-${index}`}>
           <div>
-            <h3 className="font-medium">{line.productName ?? "Dress"}</h3>
-            <p className="mt-1 text-sm text-[var(--muted)]">{line.type === "CUSTOM_DRESS" ? "Custom dress" : `Size ${line.size ?? "selected"}`}</p>
-            {line.type === "CUSTOM_DRESS" && line.measurements && <p className="mt-2 text-xs text-[var(--muted)]">Measurements saved for this cart line.</p>}
-            {line.message && <p className={`mt-2 text-sm ${line.state === "PRICE_CHANGED" ? "text-amber-900" : "text-red-800"}`} role="status">{line.message}</p>}
-            {line.fieldErrors && <ul className="mt-2 list-inside list-disc text-xs text-red-800">{Object.entries(line.fieldErrors).map(([field, message]) => <li key={field}>{field}: {message}</li>)}</ul>}
+            <h3 className="font-medium font-sans">{line.productName ?? "Dress"}</h3>
+            <p className="mt-1 text-sm text-muted">{line.type === "CUSTOM_DRESS" ? "Custom dress" : `Size ${line.size ?? "selected"}`}</p>
+            {line.type === "CUSTOM_DRESS" && line.measurements && <p className="mt-2 text-xs text-muted">Measurements saved for this cart line.</p>}
+            {line.message && <p className={`mt-2 text-sm ${line.state === "PRICE_CHANGED" ? "text-warning" : "text-danger"}`} role="status">{line.message}</p>}
+            {line.fieldErrors && <ul className="mt-2 list-inside list-disc text-xs text-danger">{Object.entries(line.fieldErrors).map(([field, message]) => <li key={field}>{field}: {message}</li>)}</ul>}
             <button className="mt-3 text-xs underline" disabled={busy} onClick={() => onRemove(line)} type="button">Remove</button>
           </div>
           <div className="flex items-center justify-between gap-5 sm:justify-end">
             {line.type === "DESIGNER_DRESS" && (line.available === undefined || line.available > 0) && (
               <label className="text-xs" htmlFor={`quantity-${line.lineId ?? index}`}>
                 Quantity
-                <input className="ml-2 min-h-10 w-20 border border-stone-300 bg-white px-2 text-sm" disabled={busy} defaultValue={line.quantity} id={`quantity-${line.lineId ?? index}`} max={line.available} min="1" onBlur={(event) => Number(event.target.value) !== line.quantity && onQuantity(line, Number(event.target.value))} type="number" />
+                <input className="ml-2 min-h-10 w-20 border border-border-strong bg-surface px-2 text-sm" disabled={busy} defaultValue={line.quantity} id={`quantity-${line.lineId ?? index}`} max={line.available} min="1" onBlur={(event) => Number(event.target.value) !== line.quantity && onQuantity(line, Number(event.target.value))} type="number" />
               </label>
             )}
             <p className="text-sm font-medium">{line.lineTotalPaise === undefined ? "—" : formatPaise(line.lineTotalPaise)}</p>

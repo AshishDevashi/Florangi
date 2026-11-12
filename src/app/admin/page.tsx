@@ -40,30 +40,30 @@ export default async function AdminDashboard() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Owner workspace</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">Owner workspace</p>
       <h1 className="mt-2 font-serif text-4xl">Overview</h1>
       <section aria-label="Store activity" className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         {counts.map((count) => (
-          <Link className="border border-stone-200 bg-white p-4 hover:border-[var(--accent)]" href={count.href} key={count.label}>
-            <p className="text-sm text-[var(--muted)]">{count.label}</p>
+          <Link className="border border-border bg-surface p-4 hover:border-accent" href={count.href} key={count.label}>
+            <p className="text-sm text-muted">{count.label}</p>
             <p className="mt-3 font-serif text-3xl">{count.value}</p>
           </Link>
         ))}
       </section>
-      <section className="mt-8 border-t border-stone-200 py-6">
+      <section className="mt-8 border-t border-border py-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="font-medium">Transactional email</h2>
-          <p className="text-xs text-[var(--muted)]">Daily quota: {sentToday} / {emailQuota} · {emailQuotaPercent}%</p>
+          <p className="text-xs text-muted">Daily quota: {sentToday} / {emailQuota} · {emailQuotaPercent}%</p>
         </div>
-        {(emailQuotaPercent >= 80 || failedEmails > 0) && <p className="mt-3 text-sm text-amber-900">{emailQuotaPercent >= 80 ? "Daily email quota is at least 80%. " : ""}{failedEmails > 0 ? `${failedEmails} failed email job(s) need review.` : ""}</p>}
-        <p className="mt-2 text-sm text-[var(--muted)]">{queuedEmails} queued or deferred · {failedEmails} failed</p>
+        {(emailQuotaPercent >= 80 || failedEmails > 0) && <p className="mt-3 text-sm text-warning">{emailQuotaPercent >= 80 ? "Daily email quota is at least 80%. " : ""}{failedEmails > 0 ? `${failedEmails} failed email job(s) need review.` : ""}</p>}
+        <p className="mt-2 text-sm text-muted">{queuedEmails} queued or deferred · {failedEmails} failed</p>
       </section>
-      <section className="mt-10 border-t border-stone-200 py-6">
+      <section className="mt-10 border-t border-border py-6">
         <h2 className="font-medium">Catalog</h2>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link className="border border-stone-300 px-4 py-2 text-sm hover:border-[var(--accent)]" href="/admin/categories">Manage categories</Link>
-          <Link className="border border-stone-300 px-4 py-2 text-sm hover:border-[var(--accent)]" href="/admin/products">Manage products</Link>
-          <Link className="border border-stone-300 px-4 py-2 text-sm hover:border-[var(--accent)]" href="/admin/inventory">Update inventory</Link>
+          <Link className="border border-border-strong px-4 py-2 text-sm hover:border-accent" href="/admin/categories">Manage categories</Link>
+          <Link className="border border-border-strong px-4 py-2 text-sm hover:border-accent" href="/admin/products">Manage products</Link>
+          <Link className="border border-border-strong px-4 py-2 text-sm hover:border-accent" href="/admin/inventory">Update inventory</Link>
         </div>
       </section>
     </main>

@@ -67,7 +67,7 @@ export async function createProviderOrderForGuest(orderId: string) {
         providerOrderId: order.razorpayOrderId,
         amountPaise: order.totalPaise,
         currency: order.currency,
-        keyId: environment.PAYMENT_DRIVER === "razorpay" ? environment.NEXT_PUBLIC_RAZORPAY_KEY_ID : null,
+        keyId: environment.PAYMENT_DRIVER === "razorpay" ? environment.RAZORPAY_KEY_ID : null,
         driver: environment.PAYMENT_DRIVER,
       };
     }
@@ -92,7 +92,7 @@ export async function createProviderOrderForGuest(orderId: string) {
       providerOrderId: providerOrder.id,
       amountPaise: order.totalPaise,
       currency: "INR",
-      keyId: environment.PAYMENT_DRIVER === "razorpay" ? environment.NEXT_PUBLIC_RAZORPAY_KEY_ID : null,
+      keyId: environment.PAYMENT_DRIVER === "razorpay" ? environment.RAZORPAY_KEY_ID : null,
       driver: environment.PAYMENT_DRIVER,
     };
   });

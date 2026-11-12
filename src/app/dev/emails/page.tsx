@@ -17,14 +17,14 @@ export default async function DevelopmentEmailsPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl px-5 py-10">
-      <header className="border-b border-stone-300 pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Florangi / Development</p>
-        <h1 className="mt-2 text-3xl font-semibold">Email outbox</h1>
+      <header className="border-b border-border-strong pb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-success">Florangi / Development</p>
+        <h1 className="mt-2 text-3xl font-medium">Email outbox</h1>
       </header>
       {messages.length === 0 ? (
-        <p className="py-10 text-stone-600">No development emails have been queued.</p>
+        <p className="py-10 text-muted">No development emails have been queued.</p>
       ) : (
-        <ul className="divide-y divide-stone-200">
+        <ul className="divide-y divide-border">
           {messages.map((message) => {
             let payload: Record<string, unknown> | null = null;
             try {
@@ -37,12 +37,12 @@ export default async function DevelopmentEmailsPage() {
               <li className="grid gap-3 py-5 sm:grid-cols-[1fr_auto]" key={message.id}>
                 <div>
                   <h2 className="font-medium">{String(payload?.subject ?? message.template)}</h2>
-                  <p className="mt-1 text-sm text-stone-600">{message.recipient} · {message.status}</p>
-                  <p className="mt-1 text-xs text-stone-500">{formatIndiaDateTime(message.createdAt)}</p>
+                  <p className="mt-1 text-sm text-muted">{message.recipient} · {message.status}</p>
+                  <p className="mt-1 text-xs text-muted">{formatIndiaDateTime(message.createdAt)}</p>
                   {typeof payload?.text === "string" && <p className="mt-3 text-sm">{payload.text}</p>}
                 </div>
                 {url && (
-                  <a className="self-center text-sm font-semibold text-emerald-800 underline" href={url}>
+                  <a className="self-center text-sm font-semibold text-success underline" href={url}>
                     Open email link
                   </a>
                 )}

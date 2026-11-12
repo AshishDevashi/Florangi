@@ -33,16 +33,16 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
     .map((line) => ({ id: line.id, productName: line.productName, productType: line.productType, size: line.size }));
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-5 py-6 sm:px-8">
-      <header className="flex items-center justify-between border-b border-stone-200 pb-5">
-        <Link className="font-serif text-2xl font-semibold" href="/">Florangi</Link>
+      <header className="flex items-center justify-between border-b border-border pb-5">
+        <Link className="font-serif text-2xl font-medium" href="/">Florangi</Link>
         <Link className="text-sm underline" href="/track-order">Track order</Link>
       </header>
       <section className="py-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Order details</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">Order details</p>
         <h1 className="mt-2 font-serif text-4xl">{order.orderNumber}</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Placed {formatIndiaDateTime(order.createdAt)} · {order.fulfillmentStatus.replaceAll("_", " ")}</p>
-        <p className="mt-2 text-sm text-[var(--muted)]">Payment: {order.paymentStatus.replaceAll("_", " ")} · {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online"}</p>
-        {order.fulfillmentStatus === "PENDING_PAYMENT" && <p className="mt-4 border-l-2 border-amber-700 bg-white px-4 py-3 text-sm">Payment pending. Complete payment before the 30-minute deadline.</p>}
+        <p className="mt-2 text-sm text-muted">Placed {formatIndiaDateTime(order.createdAt)} · {order.fulfillmentStatus.replaceAll("_", " ")}</p>
+        <p className="mt-2 text-sm text-muted">Payment: {order.paymentStatus.replaceAll("_", " ")} · {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online"}</p>
+        {order.fulfillmentStatus === "PENDING_PAYMENT" && <p className="mt-4 border-l-2 border-warning-border bg-surface px-4 py-3 text-sm">Payment pending. Complete payment before the 30-minute deadline.</p>}
         {order.fulfillmentStatus === "PENDING_PAYMENT" && <PaymentAction orderId={order.id} mode={environment.PAYMENT_DRIVER} />}
         {order.fulfillmentStatus === "PENDING_PAYMENT" && <CancelOrderButton orderId={order.id} />}
         {order.paymentStatus === "REFUND_REQUIRED" && <p className="mt-4 text-sm">Refund in progress.</p>}
@@ -50,7 +50,7 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
         <div className="mt-8 grid gap-8 md:grid-cols-[1fr_18rem]">
           <div>
             <h2 className="font-serif text-2xl">Items</h2>
-            <ul className="mt-3 divide-y divide-stone-200">
+            <ul className="mt-3 divide-y divide-border">
               {order.lines.map((line) => {
                 const latestMeasurements = line.measurementVersions.at(-1)?.values ?? line.measurementsSnapshot;
                 const measurements = latestMeasurements && typeof latestMeasurements === "object" && !Array.isArray(latestMeasurements)
@@ -59,24 +59,24 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
                 return (
                   <li className="py-4" key={line.id}>
                     <div className="flex justify-between gap-4 text-sm">
-                      <div><h3 className="font-medium">{line.productName}</h3><p className="mt-1 text-xs text-[var(--muted)]">{line.productType === "CUSTOM_DRESS" ? "Custom dress" : `Size ${line.size}`} · Qty {line.quantity}</p></div>
+                      <div><h3 className="font-medium font-sans">{line.productName}</h3><p className="mt-1 text-xs text-muted">{line.productType === "CUSTOM_DRESS" ? "Custom dress" : `Size ${line.size}`} · Qty {line.quantity}</p></div>
                       <p className="shrink-0">{formatPaise(line.unitPricePaise * line.quantity)}</p>
                     </div>
-                    {measurements && <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[var(--muted)]">{Object.entries(measurements).filter(([key]) => key !== "fitNotes").map(([key, value]) => <div className="flex justify-between gap-2" key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>}
+                    {measurements && <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted">{Object.entries(measurements).filter(([key]) => key !== "fitNotes").map(([key, value]) => <div className="flex justify-between gap-2" key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>}
                   </li>
                 );
               })}
             </ul>
-            <div className="mt-3 space-y-2 border-t border-stone-200 pt-4 text-sm">
+            <div className="mt-3 space-y-2 border-t border-border pt-4 text-sm">
               <SummaryRow label="Subtotal" value={order.subtotalPaise} />
               <SummaryRow label="Shipping" value={order.shippingFeePaise + order.codSurchargePaise} />
-              <div className="flex justify-between border-t border-stone-200 pt-3 font-semibold"><span>Total</span><span>{formatPaise(order.totalPaise)}</span></div>
+              <div className="flex justify-between border-t border-border pt-3 font-semibold"><span>Total</span><span>{formatPaise(order.totalPaise)}</span></div>
             </div>
           </div>
           <aside className="space-y-7">
             <section>
               <h2 className="font-medium">Delivery address</h2>
-              <address className="mt-2 text-sm not-italic leading-6 text-[var(--muted)]">
+              <address className="mt-2 text-sm not-italic leading-6 text-muted">
                 {address.line1}<br />{address.line2 && <>{address.line2}<br /></>}{address.landmark && <>{address.landmark}<br /></>}{address.city}, {address.state} {address.pinCode}
               </address>
             </section>
@@ -90,24 +90,24 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
           </aside>
         </div>
 
-        <section className="mt-10 border-t border-stone-200 pt-6">
+        <section className="mt-10 border-t border-border pt-6">
           <h2 className="font-serif text-2xl">Order timeline</h2>
           <ol className="mt-4 space-y-4">
-            {order.timeline.map((event) => <li className="border-l border-stone-300 pl-4" key={event.id}><p className="text-sm font-medium">{event.action.replaceAll("_", " ")}</p><p className="mt-1 text-xs text-[var(--muted)]">{formatIndiaDateTime(event.createdAt)}</p>{event.note && <p className="mt-1 text-sm text-[var(--muted)]">{event.note}</p>}</li>)}
+            {order.timeline.map((event) => <li className="border-l border-border-strong pl-4" key={event.id}><p className="text-sm font-medium">{event.action.replaceAll("_", " ")}</p><p className="mt-1 text-xs text-muted">{formatIndiaDateTime(event.createdAt)}</p>{event.note && <p className="mt-1 text-sm text-muted">{event.note}</p>}</li>)}
           </ol>
         </section>
         {order.replacementRequests.length > 0 && (
-          <section className="mt-10 border-t border-stone-200 pt-6">
+          <section className="mt-10 border-t border-border pt-6">
             <h2 className="font-serif text-2xl">Replacement requests</h2>
-            <ul className="mt-3 space-y-3">{order.replacementRequests.map((request) => <li className="border-l-2 border-stone-300 pl-4" key={request.id}><p className="text-sm font-medium">{request.status}</p><p className="mt-1 text-xs text-[var(--muted)]">{request.lines.map((line) => line.orderLineId).length} item(s) · {formatIndiaDateTime(request.createdAt)}</p>{request.decisionReason && <p className="mt-1 text-sm text-[var(--muted)]">{request.decisionReason}</p>}</li>)}</ul>
+            <ul className="mt-3 space-y-3">{order.replacementRequests.map((request) => <li className="border-l-2 border-border-strong pl-4" key={request.id}><p className="text-sm font-medium">{request.status}</p><p className="mt-1 text-xs text-muted">{request.lines.map((line) => line.orderLineId).length} item(s) · {formatIndiaDateTime(request.createdAt)}</p>{request.decisionReason && <p className="mt-1 text-sm text-muted">{request.decisionReason}</p>}</li>)}</ul>
           </section>
         )}
         {order.fulfillmentStatus === "DELIVERED" && (
-          <section className="mt-10 border-t border-stone-200 pt-6">
+          <section className="mt-10 border-t border-border pt-6">
             <h2 className="font-serif text-2xl">Replacement request</h2>
             {replacementOpen && eligibleReplacementLines.length > 0
               ? <ReplacementRequestForm orderId={order.id} lines={eligibleReplacementLines} />
-              : <p className="mt-3 text-sm text-[var(--muted)]">{replacementOpen ? "All order items already have a replacement decision." : "The replacement request window has ended."}</p>}
+              : <p className="mt-3 text-sm text-muted">{replacementOpen ? "All order items already have a replacement decision." : "The replacement request window has ended."}</p>}
           </section>
         )}
       </section>

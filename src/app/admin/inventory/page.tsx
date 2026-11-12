@@ -18,9 +18,9 @@ export default async function AdminInventoryPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Catalog</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">Catalog</p>
       <h1 className="mt-2 font-serif text-4xl">Inventory</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">Stock changes are audited. On-hand units cannot be reduced below open reservations.</p>
+      <p className="mt-2 text-sm text-muted">Stock changes are audited. On-hand units cannot be reduced below open reservations.</p>
       <div className="mt-6"><InventoryManager initialVariants={variants} lowStockThreshold={lowStockThreshold} /></div>
     </main>
   );

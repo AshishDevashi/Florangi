@@ -28,12 +28,12 @@ export function renderEmailPayload(payload: Record<string, unknown>): RenderedEm
   const url = typeof payload.url === "string" && /^https?:\/\//i.test(payload.url) ? payload.url : null;
   const measurements = Array.isArray(payload.measurements) ? JSON.stringify(payload.measurements, null, 2) : null;
   const html = [
-    `<main style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1d2722">`,
+    `<main style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#F5EEE5;padding:24px;color:#342B2B">`,
     `<h1 style="font-size:24px">${escapeHtml(subject)}</h1>`,
     `<p style="white-space:pre-line;line-height:1.6">${escapeHtml(text)}</p>`,
-    ...(measurements ? [`<pre style="white-space:pre-wrap;background:#f6f7f3;padding:16px">${escapeHtml(measurements)}</pre>`] : []),
-    ...(url ? [`<p><a href="${escapeHtml(url)}" style="color:#245c46">Continue securely</a></p>`] : []),
-    `<p style="font-size:12px;color:#68736c">Florangi · India</p>`,
+    ...(measurements ? [`<pre style="white-space:pre-wrap;background:#F5EEE5;padding:16px">${escapeHtml(measurements)}</pre>`] : []),
+    ...(url ? [`<p><a href="${escapeHtml(url)}" style="color:#694653">Continue securely</a></p>`] : []),
+    `<p style="font-size:12px;color:#694653">Florangi · India</p>`,
     `</main>`,
   ].join("");
   return { subject, text: `${text}${measurements ? `\n\n${measurements}` : ""}${url ? `\n\n${url}` : ""}`, html };

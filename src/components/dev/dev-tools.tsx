@@ -66,22 +66,22 @@ export function DevTools() {
 
   return (
     <div className="space-y-8">
-      {(message || error) && <p className={`text-sm ${error ? "text-red-800" : "text-emerald-800"}`} role={error ? "alert" : "status"}>{error || message}</p>}
-      <section className="border-t border-stone-200 pt-5">
+      {(message || error) && <p className={`text-sm ${error ? "text-danger" : "text-success"}`} role={error ? "alert" : "status"}>{error || message}</p>}
+      <section className="border-t border-border pt-5">
         <h2 className="font-serif text-2xl">Development clock</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">Current simulated time: {clock?.now ?? "Loading…"}</p>
+        <p className="mt-2 text-sm text-muted">Current simulated time: {clock?.now ?? "Loading…"}</p>
         <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={setOffset}>
-          <label className="text-sm" htmlFor="clockOffset">Offset (hours, ±720)<input className="mt-1 block min-h-11 w-40 border border-stone-300 bg-white px-3" id="clockOffset" max="720" min="-720" onChange={(event) => setOffsetHours(event.target.value)} step="0.25" type="number" value={offsetHours} /></label>
-          <button className="min-h-11 border border-stone-300 px-4 text-sm font-medium disabled:opacity-50" disabled={busy} type="submit">Set offset</button>
-          <button className="min-h-11 border border-stone-300 px-4 text-sm disabled:opacity-50" disabled={busy} onClick={() => setOffsetHours("0")} type="button">Reset</button>
+          <label className="text-sm" htmlFor="clockOffset">Offset (hours, ±720)<input className="mt-1 block min-h-11 w-40 border border-border-strong bg-surface px-3" id="clockOffset" max="720" min="-720" onChange={(event) => setOffsetHours(event.target.value)} step="0.25" type="number" value={offsetHours} /></label>
+          <button className="min-h-11 border border-border-strong px-4 text-sm font-semibold disabled:opacity-50" disabled={busy} type="submit">Set offset</button>
+          <button className="min-h-11 border border-border-strong px-4 text-sm disabled:opacity-50" disabled={busy} onClick={() => setOffsetHours("0")} type="button">Reset</button>
         </form>
-        <p className="mt-3 text-xs text-[var(--muted)]">The offset is held in this web process and resets on restart. The worker process uses its own clock.</p>
+        <p className="mt-3 text-xs text-muted">The offset is held in this web process and resets on restart. The worker process uses its own clock.</p>
       </section>
-      <section className="border-t border-stone-200 pt-5">
+      <section className="border-t border-border pt-5">
         <h2 className="font-serif text-2xl">Scheduled jobs</h2>
-        <button className="mt-4 min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => void runJobs()} type="button">{busy ? "Running…" : "Run jobs now"}</button>
+        <button className="mt-4 min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={busy} onClick={() => void runJobs()} type="button">{busy ? "Running…" : "Run jobs now"}</button>
       </section>
-      <section className="border-t border-stone-200 pt-5">
+      <section className="border-t border-border pt-5">
         <h2 className="font-serif text-2xl">Email outbox</h2>
         <Link className="mt-4 inline-block text-sm underline" href="/dev/emails">Open development emails</Link>
       </section>

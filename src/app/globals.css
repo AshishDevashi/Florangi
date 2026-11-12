@@ -1,20 +1,103 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fbfaf6;
-  --foreground: #1d2722;
-  --accent: #245c46;
-  --muted: #68736c;
+  /* Florangi — Romantic Luxury. Keep integration colors in sync (see docs/design-system.md). */
+  --ivory: #F5EEE5;
+  --rose: #B77C80;
+  --plum: #694653;
+  --sage: #A6A58B;
+  --espresso: #342B2B;
+
+  --background: var(--ivory);
+  --foreground: var(--espresso);
+  --accent: var(--plum);
+  --accent-hover: var(--espresso);
+  --on-accent: var(--ivory);
+  --muted: color-mix(in srgb, var(--espresso) 75%, var(--ivory));
+  --surface: color-mix(in srgb, var(--ivory) 45%, white);
+  --surface-muted: color-mix(in srgb, var(--sage) 12%, var(--ivory));
+  --surface-hover: color-mix(in srgb, var(--rose) 12%, var(--ivory));
+  --border: color-mix(in srgb, var(--rose) 32%, var(--ivory));
+  --border-strong: color-mix(in srgb, var(--plum) 58%, var(--ivory));
+  --success: var(--espresso);
+  --success-bg: color-mix(in srgb, var(--sage) 25%, var(--ivory));
+  --success-border: var(--sage);
+  --danger: var(--plum);
+  --danger-bg: color-mix(in srgb, var(--rose) 16%, var(--ivory));
+  --danger-border: var(--rose);
+  --warning: var(--espresso);
+  --warning-bg: color-mix(in srgb, var(--sage) 18%, var(--ivory));
+  --warning-border: var(--plum);
+  --focus: var(--plum);
 }
 
 @theme inline {
+  --color-ivory: var(--ivory);
+  --color-rose: var(--rose);
+  --color-plum: var(--plum);
+  --color-sage: var(--sage);
+  --color-espresso: var(--espresso);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-focus: var(--focus);
+  --font-sans: var(--font-manrope), "Segoe UI", sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, serif;
+}
+
+@layer base {
+  body {
+    font-weight: 400;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+  }
+
+  nav {
+    font-weight: 500;
+  }
+
+  button, [type="submit"], [type="button"], [role="button"] {
+    font-family: var(--font-sans);
+    font-weight: 600;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--rose);
+  color: var(--espresso);
+}
+
+input, select, textarea {
+  accent-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }

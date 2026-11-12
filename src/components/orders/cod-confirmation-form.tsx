@@ -32,11 +32,11 @@ export function CodConfirmationForm({ orderId }: { orderId: string }) {
 
   return (
     <form className="mt-7 space-y-4" onSubmit={submit}>
-      {error && <p className="text-sm text-red-800" role="alert">{error}</p>}
-      {message && <p className="text-sm text-emerald-800" role="status">{message}</p>}
-      {!token && <p className="text-sm text-red-800" role="status">This confirmation link is incomplete or expired.</p>}
+      {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+      {message && <p className="text-sm text-success" role="status">{message}</p>}
+      {!token && <p className="text-sm text-danger" role="status">This confirmation link is incomplete or expired.</p>}
       <label className="flex items-start gap-2 text-sm leading-6"><input className="mt-1" required type="checkbox" />I confirm that I intend to accept this made-to-measure Cash on Delivery order.</label>
-      <button className="min-h-11 bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !token} type="submit">{busy ? "Recording…" : "Confirm custom order"}</button>
+      <button className="min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={busy || !token} type="submit">{busy ? "Recording…" : "Confirm custom order"}</button>
     </form>
   );
 }

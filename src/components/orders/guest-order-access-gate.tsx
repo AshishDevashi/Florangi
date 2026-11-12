@@ -33,5 +33,5 @@ export function GuestOrderAccessGate({ orderId }: { orderId: string }) {
     };
   }, [orderId, router]);
 
-  return <p className="mt-8 text-sm text-[var(--muted)]" role="status">{message}</p>;
+  return <p className="mt-8 text-sm text-muted" role="status">{message}</p>;
 }

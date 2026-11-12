@@ -23,13 +23,13 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article>
       <Link aria-label={`View ${product.name}`} className="group block" href={`/products/${product.slug}`}>
-        <div className="relative aspect-[3/4] overflow-hidden bg-stone-100">
+        <div className="relative aspect-[3/4] overflow-hidden bg-surface-hover">
           <Image alt={product.name} className="object-cover transition-transform duration-300 group-hover:scale-[1.02]" fill sizes="(max-width: 768px) 50vw, 25vw" src={image} unoptimized />
         </div>
         <div className="mt-3 flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-medium leading-5 group-hover:underline">{product.name}</h3>
-            <p className="mt-1 text-xs text-[var(--muted)]">{product.type === "CUSTOM_DRESS" ? "Custom" : "Ready to ship"}</p>
+            <h3 className="font-medium leading-5 group-hover:underline font-sans">{product.name}</h3>
+            <p className="mt-1 text-xs text-muted">{product.type === "CUSTOM_DRESS" ? "Custom" : "Ready to ship"}</p>
           </div>
           <p className="shrink-0 text-sm">{hasDifferentPrices ? "From " : ""}{formatPaise(minimumPrice)}</p>
         </div>

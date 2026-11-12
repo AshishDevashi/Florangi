@@ -26,8 +26,8 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
 
   return (
     <div className="mt-5">
-      <button className="border border-stone-300 px-4 py-2 text-sm text-red-800 disabled:opacity-50" disabled={busy} onClick={() => void cancelOrder()} type="button">{busy ? "Cancelling…" : "Cancel unpaid order"}</button>
-      {error && <p className="mt-2 text-sm text-red-800" role="alert">{error}</p>}
+      <button className="border border-border-strong px-4 py-2 text-sm text-danger disabled:opacity-50" disabled={busy} onClick={() => void cancelOrder()} type="button">{busy ? "Cancelling…" : "Cancel unpaid order"}</button>
+      {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
     </div>
   );
 }
