@@ -1,0 +1,1148 @@
+{
+  "source": "https://florangi.com/",
+  "retrievedAt": "2026-11-14T12:50:43.062Z",
+  "purpose": "UI-only development fixtures; not Shopify migration or approved launch data",
+  "model": "DESIGNER_DRESS with zero-stock XS/S/M preview variants; source gowns are made to order",
+  "products": [
+    {
+      "name": "Pearl Galaxy",
+      "slug": "preview-wine-pearl-ballgown",
+      "sourceUrl": "https://florangi.com/gowns/wine-pearl-ballgown",
+      "sourceSku": "FL-14",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Black tie",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "Pearls crowd the top edge of the corset and scatter below, over a skirt cut very full.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 86088,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 73298,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 127288,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 114268,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 75508,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-pearl-ballgown/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 94620,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-pearl-ballgown/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Sunset Brocade",
+      "slug": "preview-ivory-brocade-mini",
+      "sourceUrl": "https://florangi.com/gowns/ivory-brocade-mini",
+      "sourceSku": "FL-17",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Celebration",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "Ivory brocade shot with gold, laced at the back, on spaghetti straps that tie.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 168258,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 90954,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 84924,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 82662,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 119650,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-brocade-mini/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 89006,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-brocade-mini/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Pearl Syrup",
+      "slug": "preview-oxblood-corset-wrap",
+      "sourceUrl": "https://florangi.com/gowns/oxblood-corset-wrap",
+      "sourceSku": "FL-13",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "Pearls run down every bone of the corset; the skirt crosses over itself on one side.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 132386,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 65456,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 94596,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 115104,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 95074,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/oxblood-corset-wrap/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 115480,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/oxblood-corset-wrap/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Ivory Drop",
+      "slug": "preview-ivory-leaf-drape",
+      "sourceUrl": "https://florangi.com/gowns/ivory-leaf-drape",
+      "sourceSku": "FL-15",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "Embroidered ivory leaves across the bodice, a slit high at the side. It feels like autumn.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 140618,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 115910,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 160832,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 138036,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 113976,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/ivory-leaf-drape/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 155772,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/ivory-leaf-drape/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "White Halter Midi",
+      "slug": "preview-white-halter-midi",
+      "sourceUrl": "https://florangi.com/gowns/white-halter-midi",
+      "sourceSku": "FL-11",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Lace over the bodice, a corset waist, and a skirt that moves all night, in white.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 18392,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 32646,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 34290,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 21084,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 8524,
+          "width": 1200,
+          "height": 800,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/white-halter-midi/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 105308,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/white-halter-midi/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Claret Column",
+      "slug": "preview-wine-slit-column",
+      "sourceUrl": "https://florangi.com/gowns/wine-slit-column",
+      "sourceSku": "FL-16",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Black tie",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "A beaded sweetheart neckline, a seamed bodice, and a slit cut high. Sure of itself.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 135386,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/06-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 217798,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 103956,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 173106,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 119072,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/wine-slit-column/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 89318,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/wine-slit-column/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Silk & Stone",
+      "slug": "preview-red-tiered-ballgown",
+      "sourceUrl": "https://florangi.com/gowns/red-tiered-ballgown",
+      "sourceSku": "FL-09",
+      "sourcePriceRange": {
+        "low": 10000,
+        "high": 12000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Handcrafted beads, glass stones and pearls on the bodice; a skirt made to twirl.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 1000000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/red-tiered-ballgown/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 326558,
+          "width": 1200,
+          "height": 1500,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/red-tiered-ballgown/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-tiered-ballgown/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 188248,
+          "width": 900,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/red-tiered-ballgown/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-tiered-ballgown/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 100734,
+          "width": 900,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/red-tiered-ballgown/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-tiered-ballgown/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 237608,
+          "width": 900,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/red-tiered-ballgown/04-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Powder Blue Bloom",
+      "slug": "preview-powder-blue-bloom-maxi",
+      "sourceUrl": "https://florangi.com/gowns/powder-blue-bloom-maxi",
+      "sourceSku": "FL-08",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Celebration",
+      "category": {
+        "name": "PREVIEW · Celebration",
+        "slug": "preview-celebration"
+      },
+      "description": "Pale blue, with flowers set on by hand down the front, each one centred in yellow.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/powder-blue-bloom-maxi/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 46486,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/powder-blue-bloom-maxi/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/powder-blue-bloom-maxi/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 29538,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/powder-blue-bloom-maxi/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/powder-blue-bloom-maxi/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 48066,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/powder-blue-bloom-maxi/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/powder-blue-bloom-maxi/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 48406,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/powder-blue-bloom-maxi/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/powder-blue-bloom-maxi/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 87232,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/powder-blue-bloom-maxi/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Rose Bella",
+      "slug": "preview-red-bubble-mini",
+      "sourceUrl": "https://florangi.com/gowns/red-bubble-mini",
+      "sourceSku": "FL-07",
+      "sourcePriceRange": {
+        "low": 10000,
+        "high": 12000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Crystals down the corset boning, more caught in the pleats, and a rose in the same cloth.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 1000000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/red-bubble-mini/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 39904,
+          "width": 1200,
+          "height": 1500,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/red-bubble-mini/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-bubble-mini/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 48822,
+          "width": 900,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/red-bubble-mini/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-bubble-mini/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 38592,
+          "width": 900,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/red-bubble-mini/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/red-bubble-mini/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 47096,
+          "width": 900,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/red-bubble-mini/04-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Hibi Yellow and Hibi Blue",
+      "slug": "preview-hibi-yellow-blue",
+      "sourceUrl": "https://florangi.com/gowns/hibi-yellow-blue",
+      "sourceSku": "FL-04",
+      "sourcePriceRange": {
+        "low": 6000,
+        "high": 8000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Engagement",
+      "category": {
+        "name": "PREVIEW · Engagement",
+        "slug": "preview-engagement"
+      },
+      "description": "One dress in two colourways, yellow and pale blue, with blooms running down one edge.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 600000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 88878,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 43724,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 45938,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 58326,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 58032,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/hibi-yellow-blue/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 55944,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/hibi-yellow-blue/06-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Carmine Rosette",
+      "slug": "preview-carmine-dot",
+      "sourceUrl": "https://florangi.com/gowns/carmine-dot",
+      "sourceSku": "FL-05",
+      "sourcePriceRange": {
+        "low": 16000,
+        "high": 18000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Celebration",
+      "category": {
+        "name": "PREVIEW · Celebration",
+        "slug": "preview-celebration"
+      },
+      "description": "A garden in white: silk flowers strewn across net, over a corset laced at the back.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 1600000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/carmine-dot/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 176790,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/carmine-dot/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/carmine-dot/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 162954,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/carmine-dot/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/carmine-dot/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 116768,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/carmine-dot/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/carmine-dot/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 84536,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/carmine-dot/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/carmine-dot/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 175572,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/carmine-dot/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Brown Tupelo",
+      "slug": "preview-brown-tupelo",
+      "sourceUrl": "https://florangi.com/gowns/brown-tupelo",
+      "sourceSku": "FL-02",
+      "sourcePriceRange": {
+        "low": 12000,
+        "high": 14000,
+        "currency": "INR"
+      },
+      "sourceCollection": "The Rustic Collection",
+      "sourceOccasion": "Sangeet",
+      "category": {
+        "name": "PREVIEW · The Rustic Collection",
+        "slug": "preview-the-rustic-collection"
+      },
+      "description": "A striking chocolate-brown silhouette, adorned all over with delicate cream leaves. 🤎\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 1200000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/brown-tupelo/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 93114,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/brown-tupelo/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/brown-tupelo/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 53748,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/brown-tupelo/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/brown-tupelo/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 90838,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/brown-tupelo/03-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Pearl Roses",
+      "slug": "preview-scarlet",
+      "sourceUrl": "https://florangi.com/gowns/scarlet",
+      "sourceSku": "FL-06",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Black tie",
+      "category": {
+        "name": "PREVIEW · Black tie",
+        "slug": "preview-black-tie"
+      },
+      "description": "Pearls trace every bone of the corset; a single strand falls over the shoulder.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/scarlet/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 24292,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/scarlet/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/scarlet/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 34062,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/scarlet/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/scarlet/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 27124,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/scarlet/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/scarlet/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 32618,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/scarlet/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/scarlet/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 45218,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/scarlet/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Rustic Roses Midi Dress",
+      "slug": "preview-rustic-roses-midi",
+      "sourceUrl": "https://florangi.com/gowns/rustic-roses-midi",
+      "sourceSku": "FL-01",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Bridal reception",
+      "category": {
+        "name": "PREVIEW · Bridal reception",
+        "slug": "preview-bridal-reception"
+      },
+      "description": "Silk roses gathered across the bust, and a skirt cut wide enough to turn in.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/rustic-roses-midi/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 78264,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/rustic-roses-midi/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/rustic-roses-midi/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 113696,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/rustic-roses-midi/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/rustic-roses-midi/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 48618,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/rustic-roses-midi/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/rustic-roses-midi/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 108484,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/rustic-roses-midi/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/rustic-roses-midi/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 116608,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/rustic-roses-midi/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Marigold Floral Ruffles",
+      "slug": "preview-berry-butter",
+      "sourceUrl": "https://florangi.com/gowns/berry-butter",
+      "sourceSku": "FL-03",
+      "sourcePriceRange": {
+        "low": 6000,
+        "high": 8000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Buttercup yellow, with flowers cut from the same cloth as the dress and embroidered.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 600000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/berry-butter/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 105936,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/berry-butter/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/berry-butter/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 98136,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/berry-butter/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/berry-butter/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 78488,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/berry-butter/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/berry-butter/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 104312,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/berry-butter/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/berry-butter/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 81950,
+          "width": 733,
+          "height": 1100,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/berry-butter/05-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Green Tiered Mini",
+      "slug": "preview-green-tiered-mini",
+      "sourceUrl": "https://florangi.com/gowns/green-tiered-mini",
+      "sourceSku": "FL-12",
+      "sourcePriceRange": {
+        "low": 8000,
+        "high": 10000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Green, strapless, the bodice panelled and topstitched in yellow above a gathered tier.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 800000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/green-tiered-mini/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 153564,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/green-tiered-mini/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/green-tiered-mini/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 52488,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/green-tiered-mini/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/green-tiered-mini/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 63562,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/green-tiered-mini/03-gallery.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Cobalt Pleated Set",
+      "slug": "preview-cobalt-pleated-set",
+      "sourceUrl": "https://florangi.com/gowns/cobalt-pleated-set",
+      "sourceSku": "FL-10",
+      "sourcePriceRange": {
+        "low": 12000,
+        "high": 14000,
+        "currency": "INR"
+      },
+      "sourceCollection": null,
+      "sourceOccasion": "Cocktail",
+      "category": {
+        "name": "PREVIEW · Cocktail",
+        "slug": "preview-cocktail"
+      },
+      "description": "Cobalt, a ruched corset left open at the waist, and knife pleats falling to the floor.\n\n[UI PREVIEW] Imported from Florangi’s public website for storefront design. The source gown is made to order. This fixture uses demo size variants with zero stock; the displayed amount is the source starting price, not a final quote.",
+      "basePricePaise": 1200000,
+      "images": [
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/01.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 62548,
+          "width": 1066,
+          "height": 1600,
+          "position": 0,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/01-cover.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/02.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 46362,
+          "width": 1066,
+          "height": 1600,
+          "position": 1,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/02-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/03.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 39422,
+          "width": 1066,
+          "height": 1600,
+          "position": 2,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/03-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/04.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 23022,
+          "width": 1066,
+          "height": 1600,
+          "position": 3,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/04-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/05.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 22700,
+          "width": 1066,
+          "height": 1600,
+          "position": 4,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/05-gallery.jpg"
+        },
+        {
+          "key": "images/fixtures/florangi/cobalt-pleated-set/06.webp",
+          "mimeType": "image/webp",
+          "sizeBytes": 49918,
+          "width": 1066,
+          "height": 1600,
+          "position": 5,
+          "sourceUrl": "https://florangi.com/images/dresses/cobalt-pleated-set/06-gallery.jpg"
+        }
+      ]
+    }
+  ]
+}

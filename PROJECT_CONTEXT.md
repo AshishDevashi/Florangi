@@ -18,6 +18,7 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - `tests/e2e/`: browser flows. `src/**/*.test.ts` are unit tests; `*.integration.test.ts` use a separate PostgreSQL database.
 - `docs/`: architecture, order state, owner decisions, recovery, backup/restore and storage migration procedures.
 - `docs/design-system.md`: approved Romantic Luxury palette and shared semantic color usage for storefront, admin, checkout and email.
+- `docs/preview-catalog.md`: owner-authorized website-derived UI fixtures, provenance and the guarded development import command.
 - `scripts/`: operational migration scripts. `public/`: static assets. Root configs define Next, TypeScript, ESLint, Vitest and Playwright.
 
 ## Product behavior and invariants
@@ -27,7 +28,7 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - Checkout reserves designer-dress (DD) stock transactionally; maintain `reserved <= onHand`. Release/allocation must follow normal audited service workflows, never manual status or counter edits. Order creation is idempotent and order numbers use a database counter.
 - Fulfillment and payment are separate state machines. Online capture is accepted only after provider verification of order ownership, INR amount and captured status. Expiry/cancellation followed by late capture means `REFUND_REQUIRED`, without re-reserving stock. Mark refunds complete only after provider verification. COD collection is explicitly recorded after delivery.
 - Custom-dress (CD) production has a 12-hour freeze after approval plus confirmation requirements; replacement requests use the order’s snapshotted 96-hour window. Consult domain rules and `docs/order-state.md` before changing transitions.
-- Email jobs are deduplicated, encrypted at rest, retried/deferred, and processed by `npm run worker` (or protected cron tick). Storage rows hold provider/key references; local is default, Cloudinary migration remains unvalidated with real credentials.
+- Email jobs are deduplicated, encrypted at rest, retried/deferred, and processed by `npm run worker` (or protected cron tick). Storage rows hold provider/key references; local is the default adapter. Public preview images use Cloudinary and account delivery has been verified; authenticated replacement-photo delivery still needs credentialed staging validation.
 - Demo catalog, seeded settings/measurement ranges and policy values are development defaults, not launch approvals. Production readiness still requires owner approvals and provider/backup/recovery exercises; see `docs/open-decisions.md` and `README.md`.
 
 ## Configuration and commands

@@ -17,6 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node --env-file=.env --import tsx prisma/seed.ts",
+    "catalog:preview": "node --conditions=react-server --env-file=.env --import tsx scripts/import-preview-catalog.ts",
+    "storage:migrate-preview": "node --conditions=react-server --env-file=.env --import tsx scripts/migrate-preview-images-to-cloudinary.ts",
     "worker": "node --conditions=react-server --env-file=.env --import tsx src/server/worker.ts",
     "storage:migrate-cloudinary": "node --conditions=react-server --env-file=.env --import tsx scripts/migrate-storage-to-cloudinary.ts"
   },
