@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUpRight, Check, Ruler, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { formatPaise } from "@/server/domain/money";
+import type { MeasurementRanges } from "@/server/domain/measurements";
+import type { QuotedCartLine } from "@/server/services/cart";
+import styles from "./product.module.css";
 
 type Product = {
   id: string;
+  name: string;
   slug: string;
   type: "DESIGNER_DRESS" | "CUSTOM_DRESS";
   basePricePaise: number;
@@ -19,132 +27,191 @@ const measurements = [
   ["waist", "Waist (inches)"],
   ["hips", "Hips (inches)"],
   ["dressLength", "Dress length (inches)"],
+  ["heightFeet", "Height (feet)"],
+  ["heightInches", "Height (inches)"],
 ] as const;
 
-export function ProductOptions({ product }: { product: Product }) {
+export function ProductOptions({ product, measurementRanges }: { product: Product; measurementRanges?: MeasurementRanges }) {
   const router = useRouter();
-  const firstAvailable = product.variants.find((variant) => variant.available > 0);
-  const [selectedVariant, setSelectedVariant] = useState(firstAvailable?.id ?? "");
-  const activeVariant = product.variants.find((variant) => variant.id === selectedVariant);
+  const formId = useId();
+  const sizeRef = useRef<HTMLFieldSetElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const requestLock = useRef(false);
+  const [selectedVariant, setSelectedVariant] = useState("");
+  const [unavailable, setUnavailable] = useState<string[]>([]);
   const [reviewedPrice, setReviewedPrice] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [fitHelp, setFitHelp] = useState(false);
+  const [showSticky, setShowSticky] = useState(false);
+  const custom = product.type === "CUSTOM_DRESS";
+  const activeVariant = product.variants.find((variant) => variant.id === selectedVariant);
+  const soldOut = !custom && !product.variants.some((variant) => variant.available > 0 && !unavailable.includes(variant.id));
+  const prices = product.variants.map((variant) => variant.unitPricePaise);
+  const startingPrice = custom ? product.basePricePaise + (product.customizationFeePaise ?? 0) : prices.length ? Math.min(...prices) : product.basePricePaise;
+  const displayedPrice = reviewedPrice ?? activeVariant?.unitPricePaise ?? startingPrice;
+  const hasPriceRange = !custom && !activeVariant && new Set(prices).size > 1;
+  const disabled = busy || added || soldOut || (custom && (!measurementRanges || !product.customizationFeePaise));
+
+  useEffect(() => {
+    const button = actionRef.current;
+    if (!button) return;
+    const observer = new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), { threshold: 0.1, rootMargin: "-115px 0px -80px 0px" });
+    observer.observe(button);
+    return () => observer.disconnect();
+  }, []);
+
+  function clearFeedback() {
+    setReviewedPrice(null);
+    setMessage("");
+    setFieldErrors({});
+  }
+
+  function focusSelection() {
+    const target = custom ? formRef.current : sizeRef.current;
+    target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+    target?.querySelector<HTMLElement>(custom ? "input" : "button:not(:disabled)")?.focus({ preventScroll: true });
+  }
 
   async function addLine(measurementValues?: Record<string, number | string>) {
-    if (product.type === "DESIGNER_DRESS" && !activeVariant) return;
-    const displayedUnitPaise = product.type === "DESIGNER_DRESS"
-      ? reviewedPrice ?? activeVariant!.unitPricePaise
-      : reviewedPrice ?? product.basePricePaise + (product.customizationFeePaise ?? 0);
+    if (requestLock.current || disabled || (!custom && !activeVariant)) return;
+    requestLock.current = true;
+    let saved = false;
     const line = {
       productId: product.id,
-      variantId: product.type === "DESIGNER_DRESS" ? activeVariant!.id : null,
+      variantId: custom ? null : activeVariant!.id,
       measurements: measurementValues,
       quantity: 1,
-      acceptedUnitPaise: displayedUnitPaise,
+      acceptedUnitPaise: displayedPrice,
     };
     setBusy(true);
     setMessage("");
+    setFieldErrors({});
     try {
-      const quoteResponse = await fetch("/api/cart/quote", {
+      const response = await fetch("/api/cart/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify([{ ...line, lineId: "product-preview" }]),
       });
-      const quote = await quoteResponse.json() as { lines?: Array<{ state: string; message?: string; fieldErrors?: Record<string, string>; unitPricePaise?: number; quoteVersion?: string; available?: number }> };
+      if (!response.ok) throw new Error("Quote unavailable");
+      const quote = await response.json() as { lines?: QuotedCartLine[] };
       const quotedLine = quote.lines?.[0];
       if (!quotedLine || quotedLine.state === "UNAVAILABLE" || quotedLine.state === "INVALID") {
-        const fieldMessages = quotedLine?.fieldErrors
-          ? Object.entries(quotedLine.fieldErrors).map(([field, error]) => `${field}: ${error}`).join(" ")
-          : "";
-        setMessage([quotedLine?.message ?? "This item cannot be added right now.", fieldMessages].filter(Boolean).join(" "));
+        setMessage(quotedLine?.message ?? "This dress can’t be added right now. Please try again.");
+        setFieldErrors(quotedLine?.fieldErrors ?? {});
+        const firstField = Object.keys(quotedLine?.fieldErrors ?? {})[0];
+        if (firstField) (formRef.current?.elements.namedItem(firstField) as HTMLElement | null)?.focus();
+        if (!custom && quotedLine?.state === "UNAVAILABLE" && activeVariant) {
+          setUnavailable((values) => [...values, activeVariant.id]);
+          setSelectedVariant("");
+          setReviewedPrice(null);
+        }
         return;
       }
+      if (!Number.isSafeInteger(quotedLine.unitPricePaise) || quotedLine.unitPricePaise! < 0 || !quotedLine.quoteVersion) throw new Error("Invalid quote");
       if (quotedLine.state === "PRICE_CHANGED") {
-        setReviewedPrice(quotedLine.unitPricePaise ?? null);
-        setMessage(`The current price is ${formatPaise(quotedLine.unitPricePaise ?? 0)}. Review it and select Add again.`);
+        setReviewedPrice(quotedLine.unitPricePaise!);
+        setMessage(`The price has changed to ${formatPaise(quotedLine.unitPricePaise!)}. Review the updated price, then accept it to add this dress.`);
         return;
       }
+      if (quotedLine.state !== "AVAILABLE") throw new Error("Unrecognized quote");
 
       const existing = localStorage.getItem("florangi-cart-v1");
-      const guestLines = existing ? JSON.parse(existing) as Array<Record<string, unknown>> : [];
-      guestLines.push({
-        ...line,
-        lineId: crypto.randomUUID(),
-        acceptedUnitPaise: quotedLine.unitPricePaise,
-        acceptedQuoteVersion: quotedLine.quoteVersion,
-      });
+      const guestLines: unknown = existing ? JSON.parse(existing) : [];
+      if (!Array.isArray(guestLines)) throw new Error("Bag unavailable");
+      guestLines.push({ ...line, lineId: crypto.randomUUID(), acceptedUnitPaise: quotedLine.unitPricePaise, acceptedQuoteVersion: quotedLine.quoteVersion });
       localStorage.setItem("florangi-cart-v1", JSON.stringify(guestLines));
+      saved = true;
+      setAdded(true);
       router.push("/cart");
     } catch {
-      setMessage("A network error interrupted the request. Your measurements are still here; try again.");
+      setMessage("We couldn’t add this dress. Your selections are still here; please try again. If it continues, open your bag or contact us.");
     } finally {
+      if (!saved) requestLock.current = false;
       setBusy(false);
     }
   }
 
-  if (product.type === "DESIGNER_DRESS") {
-    return (
-      <fieldset className="mt-8">
-        <legend className="text-sm font-semibold">Choose a size</legend>
-        <div className="mt-3 flex gap-2">
-          {product.variants.map((variant) => (
-            <button
-              aria-pressed={selectedVariant === variant.id}
-              className={`min-w-16 border px-3 py-2 text-sm ${selectedVariant === variant.id ? "border-accent bg-accent text-on-accent" : "border-border-strong"} disabled:cursor-not-allowed disabled:opacity-45`}
-              disabled={variant.available < 1}
-              key={variant.id}
-              onClick={() => setSelectedVariant(variant.id)}
-              type="button"
-            >
-              {variant.size}{variant.available < 1 ? " · Sold out" : ""}
-            </button>
-          ))}
-        </div>
-        <p aria-live="polite" className="mt-4 text-sm">
-          {activeVariant ? formatPaise(activeVariant.unitPricePaise) : "Currently sold out"}
-        </p>
-        {message && <p className="mt-3 text-sm text-warning" role="status">{message}</p>}
-        <button className="mt-5 min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={!activeVariant || busy} onClick={() => void addLine()} type="button">
-          {busy ? "Adding…" : `Add to bag · ${formatPaise(reviewedPrice ?? activeVariant?.unitPricePaise ?? 0)}`}
-        </button>
-      </fieldset>
-    );
-  }
+  const actionLabel = added ? "Opening your bag…" : busy ? "Adding…" : soldOut ? "Sold out" : reviewedPrice !== null ? "Accept price & add to bag" : "Add to bag";
 
   return (
-    <form className="mt-8 space-y-4" onSubmit={(event) => {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const values = Object.fromEntries([...formData.entries()].map(([key, value]) => [key, key === "fitNotes" ? String(value) : Number(value)]));
-      void addLine(values as Record<string, number | string>);
-    }}>
-      <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <legend className="mb-3 text-sm font-semibold">Your measurements</legend>
-        {measurements.map(([name, label]) => (
-          <label className="text-sm" htmlFor={name} key={name}>
-            {label}
-            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id={name} name={name} min="0" step="0.1" type="number" required />
-          </label>
-        ))}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="text-sm" htmlFor="heightFeet">
-            Height (feet)
-            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id="heightFeet" name="heightFeet" min="1" step="1" type="number" required />
-          </label>
-          <label className="text-sm" htmlFor="heightInches">
-            Inches
-            <input className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3" id="heightInches" name="heightInches" min="0" max="11.9" step="0.1" type="number" required />
-          </label>
+    <>
+      <div className={styles.productHeading}>
+        <p className={styles.productType}>{custom ? "Made to measure" : "Designer dress"}</p>
+        <h1>{product.name}</h1>
+        <p className={styles.price} aria-live="polite">{hasPriceRange ? "From " : ""}{formatPaise(displayedPrice)}</p>
+        <p className={styles.priceNote}>Shipping calculated at checkout.</p>
+      </div>
+
+      <div className={styles.fitHelpRow}>
+        <span>{custom ? "A fit that’s personal to you" : "Find your fit"}</span>
+        <Button variant="link" className={styles.fitButton} onClick={() => setFitHelp(true)}><Ruler size={16} aria-hidden="true" />Size & fit help</Button>
+      </div>
+
+      {!custom ? (
+        <div className={styles.selection}>
+          <fieldset ref={sizeRef} disabled={busy || added} className={styles.sizeFieldset}>
+            <legend>Choose a size {activeVariant && <span>— {activeVariant.size}</span>}</legend>
+            <div className={styles.sizeButtons}>
+              {product.variants.map((variant) => {
+                const isUnavailable = variant.available < 1 || unavailable.includes(variant.id);
+                return <Button key={variant.id} variant="secondary" className={styles.sizeButton} aria-pressed={selectedVariant === variant.id} aria-label={`${variant.size}${isUnavailable ? " · Sold out" : ""}`} disabled={isUnavailable} onClick={() => { setSelectedVariant(variant.id); clearFeedback(); }}>
+                  {variant.size}{selectedVariant === variant.id && <Check size={12} aria-hidden="true" />}
+                </Button>;
+              })}
+            </div>
+          </fieldset>
+          <p className={styles.availability} aria-live="polite">{soldOut ? "This dress is currently sold out." : activeVariant ? `Size ${activeVariant.size} is available` : "Select your size before adding to bag."}</p>
+          {message && <p className={styles.feedback} role="status" id={`${formId}-message`}>{message}</p>}
+          <Button variant="primary" className={styles.addButton} ref={actionRef} disabled={disabled || !activeVariant} onClick={() => void addLine()} aria-describedby={message ? `${formId}-message` : undefined}>
+            <ShoppingBag size={17} aria-hidden="true" />{actionLabel}
+          </Button>
         </div>
-      </fieldset>
-      <label className="block text-sm" htmlFor="fitNotes">
-        Fit notes <span className="text-muted">(optional)</span>
-        <textarea className="mt-1 block min-h-20 w-full border border-border-strong bg-surface px-3 py-2" id="fitNotes" maxLength={1000} name="fitNotes" />
-      </label>
-      <p className="text-sm font-medium">Customization fee: {formatPaise(product.customizationFeePaise ?? 0)}</p>
-      <p className="text-sm">Total: {formatPaise(reviewedPrice ?? product.basePricePaise + (product.customizationFeePaise ?? 0))}</p>
-      {message && <p className="text-sm text-warning" role="status">{message}</p>}
-      <button className="min-h-11 bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-50" disabled={busy} type="submit">{busy ? "Adding…" : "Add to bag"}</button>
-    </form>
+      ) : (
+        <form ref={formRef} id={formId} className={styles.measurementForm} onChange={clearFeedback} onSubmit={(event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          const values = Object.fromEntries([...formData.entries()].map(([key, value]) => [key, key === "fitNotes" ? String(value) : Number(value)]));
+          void addLine(values);
+        }}>
+          <p className={styles.measurementIntro}>Enter your body measurements in inches. Keep the tape comfortably close, without pulling it tight.</p>
+          <fieldset disabled={disabled} className={styles.measurementGrid}>
+            <legend className="sr-only">Your measurements</legend>
+            {measurements.map(([name, label]) => <label htmlFor={`${formId}-${name}`} key={name}>
+              {label}
+              <input id={`${formId}-${name}`} name={name} min={measurementRanges?.[name].min ?? 0} max={measurementRanges?.[name].max} step={name === "heightFeet" ? 1 : "any"} type="number" inputMode="decimal" required aria-invalid={Boolean(fieldErrors[name])} aria-describedby={fieldErrors[name] ? `${formId}-${name}-error` : undefined} />
+              {fieldErrors[name] && <span className={styles.fieldError} id={`${formId}-${name}-error`}>{fieldErrors[name]}</span>}
+            </label>)}
+            <label className={styles.fitNotes} htmlFor={`${formId}-fitNotes`}>Fit notes <span>(optional)</span><textarea id={`${formId}-fitNotes`} name="fitNotes" maxLength={1000} rows={3} placeholder="Anything you’d like us to know about your fit…" /></label>
+          </fieldset>
+          <dl className={styles.priceBreakdown}>
+            {reviewedPrice === null && <><div><dt>Dress</dt><dd>{formatPaise(product.basePricePaise)}</dd></div><div><dt>Customization fee</dt><dd>{formatPaise(product.customizationFeePaise ?? 0)}</dd></div></>}
+            <div><dt>{reviewedPrice === null ? "Total" : "Updated total"}</dt><dd>{formatPaise(displayedPrice)}</dd></div>
+          </dl>
+          {(!measurementRanges || !product.customizationFeePaise) && <p className={styles.feedback}>Made-to-measure ordering is temporarily unavailable. <Link href="/contact">Contact us for help.</Link></p>}
+          {message && <p className={styles.feedback} role="status">{message}</p>}
+          <Button variant="primary" type="submit" className={styles.addButton} ref={actionRef} disabled={disabled}><ShoppingBag size={17} aria-hidden="true" />{actionLabel}</Button>
+        </form>
+      )}
+      <p className={styles.bagNote}>Adding to your bag doesn’t reserve this dress.</p>
+
+      <div className={`${styles.mobilePurchase} ${showSticky ? styles.mobilePurchaseVisible : ""}`} aria-hidden={!showSticky}>
+        <div><span>{hasPriceRange ? "From " : ""}{formatPaise(displayedPrice)}</span><small>{custom ? "Made to measure" : activeVariant ? `Size ${activeVariant.size}` : "Choose your size"}</small></div>
+        <Button variant="primary" tabIndex={showSticky ? 0 : -1} disabled={disabled} onClick={() => { if (custom || !activeVariant) focusSelection(); else void addLine(); }}>{custom ? "Enter measurements" : activeVariant || soldOut ? actionLabel : "Choose a size"}</Button>
+      </div>
+
+      <Dialog open={fitHelp} onClose={() => setFitHelp(false)} title="Size & fit help" description="A little guidance for finding your fit.">
+        <div className={styles.fitHelpContent}>
+          {!custom && <p>Available sizes for this dress: <strong>{product.variants.map((variant) => variant.size).join(", ") || "not currently available"}</strong>. For size-specific garment measurements or help choosing between sizes, <Link href="/contact">contact us before ordering <ArrowUpRight size={12} aria-hidden="true" /></Link>.</p>}
+          <h3>How to measure</h3>
+          <ul><li><strong>Bust:</strong> Measure around the fullest part, keeping the tape level.</li><li><strong>Waist:</strong> Measure around your natural waist without pulling tight.</li><li><strong>Hips:</strong> Measure around the fullest part of your hips.</li>{custom && <><li><strong>Underbust:</strong> Measure around your ribcage, just below your bust.</li><li><strong>Dress length:</strong> Measure from the top of your shoulder to your preferred hem.</li><li><strong>Height:</strong> Enter your height in feet and the remaining inches.</li></>}</ul>
+          <p>Use a soft measuring tape and keep your posture relaxed. If you’re unsure, we’re happy to help.</p>
+          <Link href="/contact" className={styles.helpLink}>Ask about fit <ArrowUpRight size={15} aria-hidden="true" /></Link>
+        </div>
+      </Dialog>
+    </>
   );
 }

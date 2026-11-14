@@ -127,6 +127,17 @@ export async function listFeaturedProducts() {
   return products.map(toPublicProduct);
 }
 
+/** A bounded public catalog for the homepage edit and its local search. */
+export async function listHomepageProducts() {
+  const products = await db.product.findMany({
+    where: { status: "ACTIVE", category: { visible: true } },
+    include: { ...publicProductInclude, images: { ...publicProductInclude.images, take: 2 }, category: { select: { name: true, slug: true } } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 48,
+  });
+  return products.map((product) => ({ ...toPublicProduct(product), category: product.category }));
+}
+
 export async function getPublicCollection(slug: string) {
   const category = await db.category.findFirst({
     where: { slug, visible: true },
