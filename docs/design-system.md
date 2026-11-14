@@ -38,6 +38,30 @@ The styled combobox uses a native top-layer popover so menus stay above dialog c
 
 `src/components/admin/product-images.tsx` supports mouse and touch dragging through the grip, with highlighted drop targets, edge scrolling and Escape cancellation. Each image also has a position dropdown for a direct, keyboard-accessible move. A completed move sends the full ordered ID list in one request to the existing image-order endpoint. The displayed order updates only after a successful response; the first image remains the cover.
 
+## Inventory
+
+Inventory groups size variants by product and uses compact totals for on-hand, reserved and available units. Totals cover all product statuses. Stock-level and product-status filters affect the displayed rows only. Low stock follows the configured threshold and includes out-of-stock sizes; healthy stock exceeds that threshold.
+
+`inventory-adjustment-dialog.tsx` edits the absolute on-hand total and previews the difference and available units. Notes remain optional. Unchanged quantities cannot be submitted. Refreshing counts keeps the entered quantity and note, while updating the reservation minimum. Requests retain the existing server-side reservation validation, locking and audit workflow. The UI updates counts from the successful server response and preserves entries after recoverable errors.
+
+## Orders
+
+The orders list uses server-side GET filters and shows the latest 200 matching orders. Its compact counts describe that displayed result set. Fulfillment and payment use separate badges shared with the detail view. Approval-wait warnings use the service's existing 24-hour threshold. Cards link to individual orders without performing mutations.
+
+Detail sections separate items, payment totals, contact/address, shipment, activity and private notes. Optional measurement corrections and destructive actions are expandable. Shared buttons and request locks prevent repeat actions during saving; server-side transitions, stock handling, confirmation requirements and provider verification remain authoritative. COD collection is entered in rupees and converted to integer paise using the existing money parser. Email retry feedback distinguishes queuing from delivery and refreshes with persisted job changes.
+
+## Settings
+
+Settings are grouped into shipping, customization fees, replacements, measurement ranges and inventory alerts. Each record has an independent `SettingEditor` with a local draft, semantic change tracking, save/reset controls and request feedback. Money remains a string while typing and is converted to integer paise only for validation and submission. Formatting-only edits do not create a new version, and reset restores the latest successful save.
+
+Cards display the effective version/date and per-record development-default status. Saving one record updates only that record's metadata; other warnings and unsaved drafts remain intact. Missing records are labeled unconfigured, and missing measurement values stay empty. Existing server-side validation, versioning, audit and order-snapshot behavior remain unchanged. Saving a setting does not establish launch-policy approval.
+
+## Overview
+
+The overview is a server-rendered operational snapshot with a manual refresh control. It shows exact queue counts, up to five oldest approval requests, and up to five sizes with the lowest availability. Inventory aggregates and previews are computed in PostgreSQL and exclude archived products, matching the existing overview scope. Order links open the appropriate filtered queue or individual order without performing mutations.
+
+Email counts distinguish queued, deferred, processing and failed jobs. The configured quota uses the email worker's UTC day, with its reset displayed in IST. The progress bar is capped at its maximum while actual sent counts remain visible if the quota is exceeded. Warnings indicate known failures or quota usage and do not imply that other delivery conditions are healthy. No historical trends or revenue metrics are inferred from snapshot counts.
+
 ## Typography
 
 | Element | Font | Weight |
