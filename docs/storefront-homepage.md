@@ -23,4 +23,4 @@ These findings guide the implementation; no measured conversion or engagement up
 4. Two large occasion campaigns link to their actual collections, followed by four shoppable spotlight products using alternate photographs.
 5. A bridal collection campaign and a compact care/footer area. The previous large prose section and decorative text ribbons are removed.
 
-No auto-advancing hero, invented sales claims, fake testimonials, inactive wishlist controls or unconnected newsletter form are introduced. Images are delivered responsively from Cloudinary; lower-page photos are lazy-loaded. Catalog visibility and stock still come from existing server services.
+No auto-advancing hero, invented sales claims, fake testimonials, inactive wishlist controls or unconnected newsletter form are introduced. Images are delivered responsively from Cloudinary; the main hero is preloaded and the desktop companion loads eagerly. Lower-page photos are lazy-loaded except a collection thumbnail reusing the hero image, which also loads eagerly to prevent Next.js from misidentifying the hero as lazy. Catalog visibility and stock still come from existing server services.

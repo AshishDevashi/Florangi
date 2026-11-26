@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { ArrowUpRight, Heart } from "lucide-react";
 import styles from "./home.module.css";
 
-export function StoreFooter({ preview, homepage = true }: { preview: boolean; homepage?: boolean }) {
+async function CopyrightYear() {
+  await connection();
+  return new Date().getFullYear();
+}
+
+export function StoreFooter({ homepage = true }: { homepage?: boolean }) {
   const sectionHref = (hash: string) => homepage ? hash : `/${hash}`;
   return (
     <footer className={styles.footer}>
@@ -36,11 +43,13 @@ export function StoreFooter({ preview, homepage = true }: { preview: boolean; ho
         </div>
       </div>
       <div className={styles.footerBottom}>
-        <p>© {new Date().getFullYear()} Florangi</p>
-        <span>India · INR ₹</span>
-        <nav aria-label="Legal"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav>
+        <p>© <Suspense><CopyrightYear /></Suspense> Florangi</p>
+        <nav aria-label="Legal"><Link href="/privacy">Privacy policy</Link><Link href="/terms">Terms & conditions</Link></nav>
       </div>
-      {preview && <p className={styles.previewNote}>Preview catalog · Collection groupings, sizes and prices are for design preview.</p>}
+      <div className={styles.footerOrigin}>
+        <span><span aria-hidden="true">🇮🇳</span> Made for India</span>
+        <span><Heart size={13} fill="currentColor" aria-hidden="true" /> Crafted in Mumbai</span>
+      </div>
     </footer>
   );
 }

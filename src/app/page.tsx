@@ -47,7 +47,7 @@ export default async function HomePage() {
             </div>
             {companionImage && (
               <div className={styles.heroCompanion}>
-                <StoreImage src={companionImage} alt={`Another look from ${heroName}`} fill sizes="50vw" className={styles.coverImage} />
+                <StoreImage src={companionImage} alt={`Another look from ${heroName}`} fill loading="eager" sizes="50vw" className={styles.coverImage} />
               </div>
             )}
           </div>
@@ -74,6 +74,7 @@ export default async function HomePage() {
                       src={category.images[0]?.url ?? "/images/demo-dress.svg"}
                       alt=""
                       fill
+                      loading={(category.images[0]?.url ?? "/images/demo-dress.svg") === (heroImage ?? "/images/demo-dress.svg") ? "eager" : "lazy"}
                       sizes="(max-width: 700px) 38vw, (max-width: 1000px) 25vw, 17vw"
                       className={styles.coverImage}
                     />
@@ -136,7 +137,7 @@ export default async function HomePage() {
           <Link href="/track-order">Track your order <ArrowUpRight size={14} aria-hidden="true" /></Link>
         </div>
       </main>
-      <StoreFooter preview={categories.some((category) => category.name.startsWith("PREVIEW"))} />
+      <StoreFooter />
     </div>
   );
 }

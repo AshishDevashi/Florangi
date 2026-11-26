@@ -101,7 +101,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <Link href="/contact">Here to help <ArrowUpRight size={14} aria-hidden="true" /></Link>
         </div>
       </main>
-      <StoreFooter homepage={false} preview={preview} />
+      <StoreFooter homepage={false} />
     </div>
   );
 }

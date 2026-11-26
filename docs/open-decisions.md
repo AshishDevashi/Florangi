@@ -13,7 +13,7 @@ All decisions below remain **proposed, not owner-approved**. Development default
 | Q7 | Cancellation and returned shipments | Requirements defaults only | Confirm production-cost and RTO handling |
 | Q8 | Measurement ranges | Explicit development-only placeholders | Tailor-approved ranges and precision required |
 | Q9 | Authentication | Verified email/password | Owner confirmation required |
-| Q10 | Privacy retention and public policies | No production policy assumed | Owner-approved legal and retention text required |
+| Q10 | Privacy retention and public policies | Public privacy, terms and shipping pages are labelled drafts, not production policies | Owner-approved legal and retention text required |
 | Q11 | Upload limits and confirmation links | JPEG/PNG/WebP, 5 MB, 1–8 product images, up to 3 replacement photos | Confirm storage and link-expiry policy |
 | Q12 | Hosting, email and service targets | Local development only | Confirm provider, quota, traffic and recovery targets |
 | Q13 | Settings and low-stock alert | ₹300, ₹5,000, ₹500–₹1,500, 96 hours, threshold 2 | Confirm values and edit authority |

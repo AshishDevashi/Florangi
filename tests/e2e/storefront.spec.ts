@@ -4,6 +4,68 @@ import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import sharp from "sharp";
 
+test("footer links to draft policies and shows the India and Mumbai details", async ({ page }) => {
+  for (const width of [360, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("contentinfo")).not.toContainText("India · INR ₹");
+    await expect(page.getByRole("contentinfo")).not.toContainText("Preview catalog · Collection groupings");
+
+    for (const policy of [
+      { link: "Privacy policy", path: "/privacy", title: "Privacy policy" },
+      { link: "Terms & conditions", path: "/terms", title: "Terms & conditions" },
+      { link: "Shipping & delivery", path: "/shipping", title: "Shipping & delivery" },
+    ]) {
+      const footer = page.getByRole("contentinfo");
+      await footer.getByRole("link", { name: policy.link }).click();
+      await expect(page).toHaveURL(policy.path);
+      await expect(page.getByRole("heading", { name: policy.title, level: 1 })).toBeVisible();
+      await expect(page.getByRole("article").getByText("Draft for review.", { exact: false })).toBeVisible();
+      await expect(page.getByRole("contentinfo").getByText("Made for India")).toBeVisible();
+      await expect(page.getByRole("contentinfo").getByText("Crafted in Mumbai")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    }
+  }
+});
+
+test("policy pages render the current copyright without blocking prerendering", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+
+  for (const path of ["/privacy", "/terms", "/shipping"]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByText(`© ${new Date().getFullYear()} Florangi`)).toBeVisible();
+    await expect(footer.locator("svg.lucide-heart")).toHaveAttribute("fill", "currentColor");
+    await expect(footer).not.toContainText("India · INR ₹");
+    await expect(footer).not.toContainText("Preview catalog · Collection groupings");
+  }
+  expect(errors.filter((error) => /blocking.prerender.current.time|unstable value `new Date\(\)`/i.test(error))).toEqual([]);
+});
+
+test("homepage prioritizes hero images without eagerly loading unrelated collection images", async ({ page }) => {
+  for (const width of [360, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+
+    const hero = page.locator("main section").first();
+    const mainImage = hero.locator("img").first();
+    await expect(mainImage).not.toHaveAttribute("loading", "lazy");
+    const companion = hero.locator("img").nth(1);
+    if (await companion.count()) await expect(companion).toHaveAttribute("loading", "eager");
+
+    const heroSrc = await mainImage.getAttribute("src");
+    const thumbnails = page.locator('nav[aria-label="Shop collections"] img');
+    for (const image of await thumbnails.all()) {
+      await expect(image).toHaveAttribute("loading", (await image.getAttribute("src")) === heroSrc ? "eager" : "lazy");
+    }
+  }
+});
+
 test("admin catalog supports category images, product restore and deletion", async ({ page }) => {
   const origin = "http://localhost:3000";
   const env = parseEnv(readFileSync(".env", "utf8"));
