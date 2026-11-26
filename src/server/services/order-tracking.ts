@@ -8,6 +8,7 @@ export async function getOrderTracking(input: string) {
   return db.order.findUnique({
     where: { orderNumber },
     select: {
+      id: true,
       orderNumber: true,
       createdAt: true,
       fulfillmentStatus: true,

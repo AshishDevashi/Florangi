@@ -126,7 +126,7 @@
   .mobilePurchase > div { flex-shrink: 0; }
   .mobilePurchase span { font-size: 13px; font-weight: 500; }
   .mobilePurchase small { display: block; font-size: 10px; margin-top: 4px; color: var(--muted); }
-  .mobilePurchase button { border-radius: 0; min-height: 45px; font-size: 11px; flex: 1; max-width: 245px; }
+  .mobilePurchase button, .mobilePurchase a { border-radius: 0; min-height: 45px; font-size: 11px; flex: 1; max-width: 245px; }
   .related { padding: 25px 12px 30px; }
   .related > div:first-child { align-items: flex-start; }
   .related h2 { font-size: 28px; }

@@ -11,8 +11,15 @@ import styles from "./product.module.css";
 export function ProductGallery({ images, name }: { images: Array<{ url: string }>; name: string }) {
   const photos = images.length ? images : [{ url: "/images/demo-dress.svg" }];
   const trackRef = useRef<HTMLDivElement>(null);
+  const pendingTarget = useRef<number | null>(null);
+  const scrollTimer = useRef<number | null>(null);
+  const touchingTrack = useRef(false);
   const [active, setActive] = useState(0);
   const [viewer, setViewer] = useState<number | null>(null);
+
+  useEffect(() => () => {
+    if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
+  }, []);
 
   useEffect(() => {
     if (viewer === null) return;
@@ -28,14 +35,52 @@ export function ProductGallery({ images, name }: { images: Array<{ url: string }
 
   function goTo(index: number) {
     const next = Math.max(0, Math.min(index, photos.length - 1));
-    setActive(next);
-    const photo = trackRef.current?.children[next];
+    const track = trackRef.current;
+    const photo = track?.children[next];
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      trackRef.current?.scrollTo({ left: (photo as HTMLElement | undefined)?.offsetLeft ?? 0, behavior });
+    if (window.matchMedia("(max-width: 900px)").matches && track && photo instanceof HTMLElement) {
+      if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
+      const left = Math.min(photo.offsetLeft, track.scrollWidth - track.clientWidth);
+      pendingTarget.current = next;
+      if (Math.abs(track.scrollLeft - left) < 1) {
+        track.scrollTo({ left, behavior: "instant" });
+        pendingTarget.current = null;
+        setActive(next);
+      } else {
+        track.scrollTo({ left, behavior });
+      }
     } else {
+      pendingTarget.current = null;
+      setActive(next);
       photo?.scrollIntoView({ behavior, block: "nearest" });
     }
+  }
+
+  function settleScroll(track: HTMLDivElement) {
+    if (!window.matchMedia("(max-width: 900px)").matches) {
+      pendingTarget.current = null;
+      return;
+    }
+    let closest = 0;
+    let distance = Infinity;
+    Array.from(track.children).forEach((photo, index) => {
+      if (!(photo instanceof HTMLElement)) return;
+      const left = Math.min(photo.offsetLeft, track.scrollWidth - track.clientWidth);
+      const nextDistance = Math.abs(track.scrollLeft - left);
+      if (nextDistance < distance) {
+        distance = nextDistance;
+        closest = index;
+      }
+    });
+    if (pendingTarget.current !== null && pendingTarget.current !== closest) return;
+    pendingTarget.current = null;
+    setActive(closest);
+  }
+
+  function scheduleScrollSettlement(track: HTMLDivElement) {
+    if ("onscrollend" in track) return;
+    if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
+    if (!touchingTrack.current) scrollTimer.current = window.setTimeout(() => settleScroll(track), 150);
   }
 
   function moveViewer(direction: number) {
@@ -48,11 +93,24 @@ export function ProductGallery({ images, name }: { images: Array<{ url: string }
         <div
           className={styles.galleryTrack}
           ref={trackRef}
-          onScroll={(event) => {
-            const width = event.currentTarget.firstElementChild?.getBoundingClientRect().width;
-            if (width && window.matchMedia("(max-width: 900px)").matches) {
-              setActive(Math.min(photos.length - 1, Math.max(0, Math.round(event.currentTarget.scrollLeft / (width + 4)))));
-            }
+          onScroll={(event) => scheduleScrollSettlement(event.currentTarget)}
+          onScrollEnd={(event) => settleScroll(event.currentTarget)}
+          onPointerDown={() => { pendingTarget.current = null; }}
+          onWheel={() => { pendingTarget.current = null; }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") pendingTarget.current = null;
+          }}
+          onTouchStart={() => {
+            touchingTrack.current = true;
+            if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
+          }}
+          onTouchEnd={(event) => {
+            touchingTrack.current = false;
+            scheduleScrollSettlement(event.currentTarget);
+          }}
+          onTouchCancel={(event) => {
+            touchingTrack.current = false;
+            scheduleScrollSettlement(event.currentTarget);
           }}
         >
           {photos.map((photo, index) => (
@@ -69,9 +127,9 @@ export function ProductGallery({ images, name }: { images: Array<{ url: string }
           ))}
         </div>
         {photos.length > 1 && <div className={styles.galleryControls}>
-          <Button variant="secondary" size="icon" aria-label="Previous product photo" disabled={active === 0} onClick={() => goTo(active - 1)}><ArrowLeft size={17} aria-hidden="true" /></Button>
+          <Button variant="secondary" size="icon" aria-label="Previous product photo" disabled={active === 0} onClick={() => goTo((pendingTarget.current ?? active) - 1)}><ArrowLeft size={17} aria-hidden="true" /></Button>
           <span aria-live="polite">{active + 1} / {photos.length}</span>
-          <Button variant="secondary" size="icon" aria-label="Next product photo" disabled={active === photos.length - 1} onClick={() => goTo(active + 1)}><ArrowRight size={17} aria-hidden="true" /></Button>
+          <Button variant="secondary" size="icon" aria-label="Next product photo" disabled={active === photos.length - 1} onClick={() => goTo((pendingTarget.current ?? active) + 1)}><ArrowRight size={17} aria-hidden="true" /></Button>
         </div>}
       </div>
       {photos.length > 1 && <div className={styles.thumbnails} role="group" aria-label="Choose a product photo">

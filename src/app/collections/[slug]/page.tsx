@@ -5,7 +5,6 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { HomeProductCard } from "@/components/storefront/home-product-card";
 import { StoreFooter } from "@/components/storefront/store-footer";
 import { StoreHeader } from "@/components/storefront/store-header";
-import { StoreImage } from "@/components/storefront/store-image";
 import { collectionLabel } from "@/components/storefront/types";
 import { getPublicCollection, listHomepageProducts, listVisibleCategories } from "@/server/services/catalog";
 import styles from "@/components/storefront/home.module.css";
@@ -37,16 +36,6 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
           <p className="text-xs text-muted">{collection.products.length} {collection.products.length === 1 ? "dress" : "dresses"}</p>
         </div>
 
-        {collection.images.length > 0 && (
-          <div className={`grid gap-1 ${collection.images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-            {collection.images.map((image) => (
-              <div className={`relative overflow-hidden bg-surface-muted ${collection.images.length > 1 ? "aspect-[3/4] sm:aspect-[4/3]" : "aspect-[4/3] sm:aspect-[16/7]"}`} key={image.id}>
-                <StoreImage alt={collection.name} className="object-cover object-[center_35%]" fill loading="eager" sizes={collection.images.length > 1 ? "50vw" : "100vw"} src={image.url} />
-              </div>
-            ))}
-          </div>
-        )}
-
         <section className="mt-10 sm:mt-14" aria-labelledby="collection-dresses">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <h2 className="font-serif text-3xl sm:text-4xl" id="collection-dresses">The dress edit</h2>
@@ -54,7 +43,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
           </div>
           {collection.products.length ? (
             <div className={styles.productGrid}>
-              {collection.products.map((product) => <HomeProductCard key={product.id} product={product} />)}
+              {collection.products.map((product, index) => <HomeProductCard key={product.id} product={product} eager={index < 4} />)}
             </div>
           ) : <p className="py-6 text-sm text-muted">There are no dresses in this collection yet.</p>}
         </section>

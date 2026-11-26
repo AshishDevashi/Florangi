@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ArrowUpRight, Heart } from "lucide-react";
+import { ArrowUpRight, Heart, Sparkle } from "lucide-react";
 import styles from "./home.module.css";
 
 async function CopyrightYear() {
@@ -43,13 +43,17 @@ export function StoreFooter({ homepage = true }: { homepage?: boolean }) {
           <span>With love, Florangi.</span>
         </div>
       </div>
+      <div className={styles.footerSignature}>
+        <p>A little note from us</p>
+        <div className={styles.footerOrigin}>
+          <span><span className={styles.footerOriginFlag} aria-hidden="true">🇮🇳</span> Made for India</span>
+          <Sparkle className={styles.footerOriginDivider} size={12} aria-hidden="true" />
+          <span><Heart size={18} fill="currentColor" aria-hidden="true" /> Crafted in Mumbai</span>
+        </div>
+      </div>
       <div className={styles.footerBottom}>
         <p>© <Suspense><CopyrightYear /></Suspense> Florangi</p>
         <nav aria-label="Legal"><Link href="/privacy">Privacy policy</Link><Link href="/terms">Terms & conditions</Link></nav>
-      </div>
-      <div className={styles.footerOrigin}>
-        <span><span aria-hidden="true">🇮🇳</span> Made for India</span>
-        <span><Heart size={13} fill="currentColor" aria-hidden="true" /> Crafted in Mumbai</span>
       </div>
     </footer>
   );

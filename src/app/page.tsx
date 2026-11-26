@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { buttonStyles } from "@/components/ui/button";
 import { CampaignCard } from "@/components/storefront/campaign-card";
+import { CollectionCard } from "@/components/storefront/collection-card";
 import { HomeEdit } from "@/components/storefront/home-edit";
 import { HomeProductCard } from "@/components/storefront/home-product-card";
 import { StoreFooter } from "@/components/storefront/store-footer";
@@ -63,24 +64,17 @@ export default async function HomePage() {
         <section className={`${styles.section} ${styles.collectionSection}`} id="collections" aria-labelledby="collections-title">
           <div className={styles.sectionHeading}>
             <h2 id="collections-title">Find your occasion</h2>
-            <Link href="#the-edit" className={styles.textLink}>Shop all dresses <ArrowUpRight size={15} aria-hidden="true" /></Link>
+            <Link href="/collections" className={styles.textLink}>View all collections <ArrowUpRight size={15} aria-hidden="true" /></Link>
           </div>
           {categories.length ? (
-            <nav className={styles.collectionGallery} aria-label="Shop collections">
-              {categories.map((category) => (
-                <Link href={`/collections/${category.slug}`} className={styles.collectionTile} key={category.id}>
-                  <div className={styles.collectionThumb}>
-                    <StoreImage
-                      src={category.images[0]?.url ?? "/images/demo-dress.svg"}
-                      alt=""
-                      fill
-                      loading={(category.images[0]?.url ?? "/images/demo-dress.svg") === (heroImage ?? "/images/demo-dress.svg") ? "eager" : "lazy"}
-                      sizes="(max-width: 700px) 38vw, (max-width: 1000px) 25vw, 17vw"
-                      className={styles.coverImage}
-                    />
-                  </div>
-                  <span>{collectionLabel(category.name)} <ArrowUpRight size={13} aria-hidden="true" /></span>
-                </Link>
+            <nav className={`${styles.collectionsGrid} ${styles.homeCollectionsGrid}`} aria-label="Shop collections">
+              {categories.slice(0, 3).map((category) => (
+                <CollectionCard
+                  category={category}
+                  headingLevel="h3"
+                  loading={(category.images[0]?.url ?? "/images/demo-dress.svg") === (heroImage ?? "/images/demo-dress.svg") ? "eager" : "lazy"}
+                  key={category.id}
+                />
               ))}
             </nav>
           ) : <p className={styles.empty}>New collections are on their way.</p>}

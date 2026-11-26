@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { startTransition, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Check, Ruler, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { formatPaise } from "@/server/domain/money";
 import type { MeasurementRanges } from "@/server/domain/measurements";
@@ -31,12 +31,37 @@ const measurements = [
   ["heightInches", "Height (inches)"],
 ] as const;
 
+type BagLine = { productId: string; variantId?: string | null; quantity: number; [key: string]: unknown };
+
+function isBagLine(line: unknown): line is BagLine {
+  return Boolean(line && typeof line === "object" && "productId" in line && typeof line.productId === "string"
+    && "quantity" in line && typeof line.quantity === "number" && Number.isSafeInteger(line.quantity) && line.quantity > 0
+    && (!("variantId" in line) || line.variantId == null || typeof line.variantId === "string"));
+}
+
+function readBag(): BagLine[] {
+  const raw = localStorage.getItem("florangi-cart-v1");
+  const lines: unknown = raw === null ? [] : JSON.parse(raw);
+  if (!Array.isArray(lines) || !lines.every(isBagLine)) throw new Error("Invalid bag");
+  return lines;
+}
+
+function variantCounts(lines: BagLine[], productId: string) {
+  const counts: Record<string, number> = {};
+  for (const line of lines) {
+    if (line.productId === productId && typeof line.variantId === "string") {
+      counts[line.variantId] = (counts[line.variantId] ?? 0) + line.quantity;
+    }
+  }
+  return counts;
+}
+
 export function ProductOptions({ product, measurementRanges }: { product: Product; measurementRanges?: MeasurementRanges }) {
   const router = useRouter();
   const formId = useId();
   const sizeRef = useRef<HTMLFieldSetElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const actionRef = useRef<HTMLButtonElement>(null);
+  const actionRef = useRef<HTMLDivElement>(null);
   const requestLock = useRef(false);
   const [selectedVariant, setSelectedVariant] = useState("");
   const [unavailable, setUnavailable] = useState<string[]>([]);
@@ -47,14 +72,38 @@ export function ProductOptions({ product, measurementRanges }: { product: Produc
   const [added, setAdded] = useState(false);
   const [fitHelp, setFitHelp] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
+  const [bag, setBag] = useState<{ productId: string; counts: Record<string, number>; error: string } | null>(null);
   const custom = product.type === "CUSTOM_DRESS";
   const activeVariant = product.variants.find((variant) => variant.id === selectedVariant);
+  const currentBag = bag?.productId === product.id ? bag : null;
+  const selectedCount = activeVariant ? currentBag?.counts[activeVariant.id] ?? 0 : 0;
+  const selectedUnavailable = activeVariant ? activeVariant.available < 1 || unavailable.includes(activeVariant.id) : false;
   const soldOut = !custom && !product.variants.some((variant) => variant.available > 0 && !unavailable.includes(variant.id));
   const prices = product.variants.map((variant) => variant.unitPricePaise);
   const startingPrice = custom ? product.basePricePaise + (product.customizationFeePaise ?? 0) : prices.length ? Math.min(...prices) : product.basePricePaise;
   const displayedPrice = reviewedPrice ?? activeVariant?.unitPricePaise ?? startingPrice;
   const hasPriceRange = !custom && !activeVariant && new Set(prices).size > 1;
-  const disabled = busy || added || soldOut || (custom && (!measurementRanges || !product.customizationFeePaise));
+  const disabled = busy || added || (custom ? !measurementRanges || !product.customizationFeePaise : !currentBag || Boolean(currentBag.error) || soldOut || selectedUnavailable);
+
+  useEffect(() => {
+    if (product.type !== "DESIGNER_DRESS") return;
+    function refreshBag() {
+      try {
+        setBag({ productId: product.id, counts: variantCounts(readBag(), product.id), error: "" });
+      } catch {
+        setBag({ productId: product.id, counts: {}, error: "Your bag could not be read. Please open your bag or contact us for help." });
+      }
+    }
+    startTransition(refreshBag);
+    window.addEventListener("focus", refreshBag);
+    window.addEventListener("pageshow", refreshBag);
+    window.addEventListener("storage", refreshBag);
+    return () => {
+      window.removeEventListener("focus", refreshBag);
+      window.removeEventListener("pageshow", refreshBag);
+      window.removeEventListener("storage", refreshBag);
+    };
+  }, [product.id, product.type]);
 
   useEffect(() => {
     const button = actionRef.current;
@@ -119,14 +168,21 @@ export function ProductOptions({ product, measurementRanges }: { product: Produc
       }
       if (quotedLine.state !== "AVAILABLE") throw new Error("Unrecognized quote");
 
-      const existing = localStorage.getItem("florangi-cart-v1");
-      const guestLines: unknown = existing ? JSON.parse(existing) : [];
-      if (!Array.isArray(guestLines)) throw new Error("Bag unavailable");
+      const guestLines = readBag();
+      if (!custom && activeVariant && (variantCounts(guestLines, product.id)[activeVariant.id] ?? 0) > 0) {
+        setBag({ productId: product.id, counts: variantCounts(guestLines, product.id), error: "" });
+        setMessage(`Size ${activeVariant.size} is already in your bag.`);
+        return;
+      }
       guestLines.push({ ...line, lineId: crypto.randomUUID(), acceptedUnitPaise: quotedLine.unitPricePaise, acceptedQuoteVersion: quotedLine.quoteVersion });
       localStorage.setItem("florangi-cart-v1", JSON.stringify(guestLines));
-      saved = true;
-      setAdded(true);
-      router.push("/cart");
+      if (custom) {
+        saved = true;
+        setAdded(true);
+        router.push("/cart");
+      } else {
+        setBag({ productId: product.id, counts: variantCounts(guestLines, product.id), error: "" });
+      }
     } catch {
       setMessage("We couldn’t add this dress. Your selections are still here; please try again. If it continues, open your bag or contact us.");
     } finally {
@@ -135,7 +191,7 @@ export function ProductOptions({ product, measurementRanges }: { product: Produc
     }
   }
 
-  const actionLabel = added ? "Opening your bag…" : busy ? "Adding…" : soldOut ? "Sold out" : reviewedPrice !== null ? "Accept price & add to bag" : "Add to bag";
+  const actionLabel = added ? "Opening your bag…" : busy ? "Adding…" : soldOut || selectedUnavailable ? "Sold out" : reviewedPrice !== null ? "Accept price & add to bag" : "Add to bag";
 
   return (
     <>
@@ -158,17 +214,23 @@ export function ProductOptions({ product, measurementRanges }: { product: Produc
             <div className={styles.sizeButtons}>
               {product.variants.map((variant) => {
                 const isUnavailable = variant.available < 1 || unavailable.includes(variant.id);
-                return <Button key={variant.id} variant="secondary" className={styles.sizeButton} aria-pressed={selectedVariant === variant.id} aria-label={`${variant.size}${isUnavailable ? " · Sold out" : ""}`} disabled={isUnavailable} onClick={() => { setSelectedVariant(variant.id); clearFeedback(); }}>
+                const inBag = (currentBag?.counts[variant.id] ?? 0) > 0;
+                return <Button key={variant.id} variant="secondary" className={styles.sizeButton} aria-pressed={selectedVariant === variant.id} aria-label={`${variant.size}${isUnavailable ? " · Sold out" : ""}`} disabled={isUnavailable && !inBag} onClick={() => { setSelectedVariant(variant.id); clearFeedback(); }}>
                   {variant.size}{selectedVariant === variant.id && <Check size={12} aria-hidden="true" />}
                 </Button>;
               })}
             </div>
           </fieldset>
-          <p className={styles.availability} aria-live="polite">{soldOut ? "This dress is currently sold out." : activeVariant ? `Size ${activeVariant.size} is available` : "Select your size before adding to bag."}</p>
+          <p className={styles.availability} aria-live="polite">{activeVariant && selectedCount > 0 ? `Size ${activeVariant.size} · ${selectedCount} ${selectedCount === 1 ? "item" : "items"} in your bag${selectedUnavailable ? " · Sold out" : ""}` : soldOut ? "This dress is currently sold out." : activeVariant ? `Size ${activeVariant.size} is ${selectedUnavailable ? "sold out" : "available"}` : "Select your size before adding to bag."}</p>
+          {currentBag?.error && <p className={styles.feedback} role="alert">{currentBag.error}</p>}
           {message && <p className={styles.feedback} role="status" id={`${formId}-message`}>{message}</p>}
-          <Button variant="primary" className={styles.addButton} ref={actionRef} disabled={disabled || !activeVariant} onClick={() => void addLine()} aria-describedby={message ? `${formId}-message` : undefined}>
-            <ShoppingBag size={17} aria-hidden="true" />{actionLabel}
-          </Button>
+          <div ref={actionRef}>
+            {selectedCount > 0 && !busy ? <Link className={buttonStyles({ variant: "primary", className: styles.addButton })} href="/cart"><ShoppingBag size={17} aria-hidden="true" />Go to bag</Link> : (
+              <Button variant="primary" className={styles.addButton} disabled={disabled || !activeVariant} onClick={() => void addLine()} aria-describedby={message ? `${formId}-message` : undefined}>
+                <ShoppingBag size={17} aria-hidden="true" />{actionLabel}
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <form ref={formRef} id={formId} className={styles.measurementForm} onChange={clearFeedback} onSubmit={(event) => {
@@ -193,14 +255,16 @@ export function ProductOptions({ product, measurementRanges }: { product: Produc
           </dl>
           {(!measurementRanges || !product.customizationFeePaise) && <p className={styles.feedback}>Made-to-measure ordering is temporarily unavailable. <Link href="/contact">Contact us for help.</Link></p>}
           {message && <p className={styles.feedback} role="status">{message}</p>}
-          <Button variant="primary" type="submit" className={styles.addButton} ref={actionRef} disabled={disabled}><ShoppingBag size={17} aria-hidden="true" />{actionLabel}</Button>
+          <div ref={actionRef}><Button variant="primary" type="submit" className={styles.addButton} disabled={disabled}><ShoppingBag size={17} aria-hidden="true" />{actionLabel}</Button></div>
         </form>
       )}
       <p className={styles.bagNote}>Adding to your bag doesn’t reserve this dress.</p>
 
       <div className={`${styles.mobilePurchase} ${showSticky ? styles.mobilePurchaseVisible : ""}`} aria-hidden={!showSticky}>
-        <div><span>{hasPriceRange ? "From " : ""}{formatPaise(displayedPrice)}</span><small>{custom ? "Made to measure" : activeVariant ? `Size ${activeVariant.size}` : "Choose your size"}</small></div>
-        <Button variant="primary" tabIndex={showSticky ? 0 : -1} disabled={disabled} onClick={() => { if (custom || !activeVariant) focusSelection(); else void addLine(); }}>{custom ? "Enter measurements" : activeVariant || soldOut ? actionLabel : "Choose a size"}</Button>
+        <div><span>{hasPriceRange ? "From " : ""}{formatPaise(displayedPrice)}</span><small>{custom ? "Made to measure" : activeVariant ? `Size ${activeVariant.size}${selectedCount ? ` · ${selectedCount} in bag` : ""}` : "Choose your size"}</small></div>
+        {!custom && selectedCount > 0 && !busy ? <Link className={buttonStyles({ variant: "primary" })} href="/cart" tabIndex={showSticky ? 0 : -1}>Go to bag</Link> : (
+          <Button variant="primary" tabIndex={showSticky ? 0 : -1} disabled={disabled} onClick={() => { if (custom || !activeVariant) focusSelection(); else void addLine(); }}>{custom ? "Enter measurements" : activeVariant || soldOut ? actionLabel : "Choose a size"}</Button>
+        )}
       </div>
 
       <Dialog open={fitHelp} onClose={() => setFitHelp(false)} title="Size & fit help" description="A little guidance for finding your fit.">

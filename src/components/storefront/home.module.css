@@ -5,8 +5,15 @@
 .skipLink:focus { top: 12px; }
 
 /* Compact navigation stays available while browsing the photography. */
-.announcement { display: flex; align-items: center; justify-content: center; min-height: 28px; padding: 5px 16px; background: var(--plum); color: var(--ivory); font-size: 10px; letter-spacing: .08em; }
-.announcement a { display: inline-flex; align-items: center; gap: 12px; }
+.announcement { display: flex; align-items: center; justify-content: center; min-height: 28px; padding: 5px 16px; background: var(--plum); color: var(--ivory); font-size: 10px; letter-spacing: .08em; text-align: center; }
+.announcementSlides { display: grid; }
+.announcementSlide { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; opacity: 0; animation: announcementCycle 18s linear infinite; }
+@keyframes announcementCycle {
+  0%, 28% { opacity: 1; transform: translateY(0); }
+  33% { opacity: 0; transform: translateY(-5px); }
+  95% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 .header { position: sticky; top: 0; z-index: 30; background: var(--ivory); border-bottom: 1px solid var(--border); }
 .headerMain { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; min-height: 72px; padding-inline: var(--page-gutter); }
 .wordmark { font-family: var(--font-serif); font-size: 45px; font-weight: 500; line-height: 1; letter-spacing: -.045em; padding-block: 9px; }
@@ -33,7 +40,7 @@
 .campaignButton { border-radius: 0; min-height: 46px; background: var(--ivory); color: var(--espresso); border-color: var(--ivory); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; gap: 25px; padding-inline: 25px; }
 .campaignButton:not(:disabled):hover { background: var(--plum); color: var(--ivory); border-color: var(--plum); }
 
-/* The complete category range is visible before the first product section. */
+/* Featured collections lead into the product edit. */
 .section { padding: 38px var(--page-gutter); scroll-margin-top: 125px; }
 .sectionHeading, .campaignHeading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 19px; }
 .sectionHeading h2, .campaignHeading h2 { font-family: var(--font-serif); font-size: clamp(27px, 2.4vw, 36px); line-height: 1.15; font-weight: 500; }
@@ -41,18 +48,14 @@
 .textLink:hover { color: var(--plum); }
 .sectionCount { font-size: 11px; color: var(--muted); }
 .collectionSection { padding-bottom: 20px; }
-.collectionGallery { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; }
-.collectionTile { min-width: 0; display: block; }
-.collectionThumb { position: relative; overflow: hidden; aspect-ratio: 3 / 4; background: var(--surface-muted); }
-.collectionTile:hover .coverImage { transform: scale(1.035); }
-.collectionTile > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 11px; font-size: 11px; line-height: 1.5; font-weight: 500; }
 .collectionsGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 36px; }
+.homeCollectionsGrid { margin-top: 0; }
 .collectionCard { position: relative; display: block; min-width: 0; overflow: hidden; aspect-ratio: 0.645 / 1; background: var(--surface-muted); }
 .collectionCard:hover .coverImage, .collectionCard:focus-visible .coverImage { transform: scale(1.035); }
 .collectionCardCaption { position: absolute; inset: auto 0 0; padding: 100px 24px 28px; color: var(--ivory); text-align: center; background: linear-gradient(transparent, color-mix(in srgb, var(--espresso) 90%, transparent)); }
-.collectionCardCaption h2 { overflow-wrap: anywhere; font-size: clamp(28px, 3vw, 42px); line-height: 1.1; }
-.collectionCardAction { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; }
-.collectionCardAction svg { opacity: 0; transition: opacity .2s ease; }
+.collectionCardCaption h2, .collectionCardCaption h3 { overflow-wrap: anywhere; font-size: clamp(28px, 3vw, 42px); line-height: 1.1; }
+.collectionCardAction { position: relative; display: inline-flex; align-items: center; margin-top: 12px; font-size: 12px; }
+.collectionCardAction svg { position: absolute; left: calc(100% + 6px); opacity: 0; transition: opacity .2s ease; }
 .collectionCard:hover .collectionCardAction > span, .collectionCard:focus-visible .collectionCardAction > span { text-decoration: underline; text-underline-offset: 4px; }
 .collectionCard:hover .collectionCardAction svg, .collectionCard:focus-visible .collectionCardAction svg { opacity: 1; }
 .filters { display: flex; gap: 24px; overflow-x: auto; margin-top: -5px; margin-bottom: 17px; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
@@ -70,8 +73,9 @@
 .productDetails { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 11px; }
 .productDetails h3 { font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 1.6; }
 .productDetails p { font-size: 11px; line-height: 1.8; flex-shrink: 0; }
-.sizes { display: flex; gap: 12px; color: var(--muted); font-size: 10px; margin-top: 5px; }
-.unavailableSize { text-decoration: line-through; opacity: .6; }
+.sizes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; margin-top: 9px; }
+.sizes > span { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; min-height: 26px; padding: 3px 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--espresso); font-weight: 500; line-height: 1; }
+.sizes > .unavailableSize { border-style: dashed; background: transparent; color: var(--muted); text-decoration: line-through; opacity: .7; }
 .loadMore { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: 28px; }
 .outlineButton { border-radius: 0; min-height: 46px; padding-inline: 26px; border-color: var(--border-strong); font-size: 11px; gap: 20px; }
 .loadMore > span { font-size: 10px; color: var(--muted); }
@@ -105,14 +109,19 @@
 .footer h2 { font-family: var(--font-sans); font-size: 11px; font-weight: 500; margin-block: 5px 15px; }
 .footer nav { display: flex; flex-direction: column; gap: 13px; font-size: 11px; font-weight: 400; color: color-mix(in srgb, var(--ivory) 80%, var(--espresso)); }
 .footer a:hover { color: var(--rose); }
-.footerStatement { padding-left: 24px; border-left: 1px solid color-mix(in srgb, var(--ivory) 20%, transparent); }
+.footerStatement { padding-left: 24px; }
 .footerStatement p { font-family: var(--font-serif); font-size: 30px; line-height: 1.1; }
 .footerStatement span { display: block; font-size: 11px; color: var(--rose); margin-top: 15px; }
-.footerBottom { display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid color-mix(in srgb, var(--ivory) 17%, transparent); padding-top: 17px; color: color-mix(in srgb, var(--ivory) 75%, var(--espresso)); font-size: 10px; }
-.footerBottom nav { flex-direction: row; gap: 20px; font-size: 10px; }
-.footerOrigin { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; margin-top: 18px; color: color-mix(in srgb, var(--ivory) 75%, var(--espresso)); font-size: 10px; }
-.footerOrigin > span { display: inline-flex; align-items: center; gap: 6px; }
+.footerSignature { padding: 36px 16px 38px; text-align: center; background: radial-gradient(ellipse at center, color-mix(in srgb, var(--plum) 38%, transparent), transparent 72%); }
+.footerSignature > p { color: color-mix(in srgb, var(--rose) 60%, var(--ivory)); font-size: 10px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; }
+.footerOrigin { display: flex; align-items: center; justify-content: center; gap: clamp(20px, 3vw, 45px); margin-top: 15px; color: var(--ivory); }
+.footerOrigin > span { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-serif); font-size: clamp(24px, 2.4vw, 32px); line-height: 1.2; }
+.footerOriginFlag { font-family: var(--font-sans); font-size: 18px; }
 .footerOrigin svg { color: var(--rose); }
+.footerOriginDivider { opacity: .8; }
+.footerBottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 32px; padding-top: 18px; color: color-mix(in srgb, var(--ivory) 75%, var(--espresso)); font-size: 11px; }
+.footerBottom nav { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 22px; font-size: 11px; }
+.footerBottom nav a { display: inline-flex; align-items: center; min-height: 44px; }
 
 /* Dialogs retain native focus management and scroll containment. */
 .searchContent { overflow-y: auto; padding: 24px; }
@@ -132,8 +141,6 @@
 .menuLinks a { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); font-size: 14px; padding-block: 17px; }
 
 @media (max-width: 1000px) {
-  .collectionGallery { grid-auto-columns: 22%; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-  .collectionTile { scroll-snap-align: start; }
   .productDetails { flex-direction: column; gap: 2px; }
   .wideCampaign { min-height: 530px; }
   .footerMain { grid-template-columns: 1.2fr 1fr 1fr; gap: 25px; }
@@ -164,9 +171,6 @@
   .textLink { font-size: 10px; gap: 7px; min-height: 35px; }
   .sectionCount { font-size: 10px; }
   .collectionSection { padding-bottom: 8px; }
-  .collectionGallery { grid-auto-columns: 36%; gap: 9px; margin-right: -12px; padding-right: 12px; padding-bottom: 12px; scroll-padding-left: 0; }
-  .collectionTile > span { font-size: 10px; padding-top: 8px; gap: 4px; }
-  .collectionTile > span svg { width: 11px; }
   .filters { gap: 21px; margin-bottom: 12px; }
   .filter { font-size: 10px; }
   .productGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 23px 7px; }
@@ -174,7 +178,7 @@
   .productDetails h3 { font-size: 11px; }
   .productDetails p { font-size: 11px; }
   .productExplore { display: none; }
-  .sizes { font-size: 9px; gap: 10px; }
+  .sizes { font-size: 10px; }
   .loadMore { margin-top: 23px; }
   .outlineButton { font-size: 10px; }
   .occasionSection { padding-top: 3px; scroll-margin-top: 113px; }
@@ -199,11 +203,16 @@
   .footerBrand > p { margin-top: 8px; }
   .footer h2 { margin-bottom: 16px; }
   .footer nav { gap: 15px; }
-  .footerBottom { flex-direction: column; gap: 12px; text-align: center; font-size: 9px; }
-  .footerBottom nav { font-size: 9px; gap: 15px; }
+  .footerSignature { padding: 32px 8px; }
+  .footerOrigin { flex-direction: column; gap: 13px; margin-top: 17px; }
+  .footerOrigin > span { font-size: 27px; }
+  .footerOriginDivider { display: none; }
+  .footerBottom { flex-direction: column-reverse; gap: 0; padding-top: 12px; text-align: center; }
 }
 @media (hover: none) { .alternateImage { display: none; } }
 @media (prefers-reduced-motion: reduce) {
+  .announcementSlides { display: flex; flex-direction: column; gap: 4px; }
+  .announcementSlide { opacity: 1; animation: none; }
   .coverImage, .alternateImage, .productExplore, .collectionCardAction svg { transition: none; }
-  .collectionTile:hover .coverImage, .campaignCard:hover .coverImage, .collectionCard:hover .coverImage, .collectionCard:focus-visible .coverImage { transform: none; }
+  .campaignCard:hover .coverImage, .collectionCard:hover .coverImage, .collectionCard:focus-visible .coverImage { transform: none; }
 }
