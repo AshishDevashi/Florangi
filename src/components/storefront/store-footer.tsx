@@ -23,7 +23,7 @@ export function StoreFooter({ homepage = true }: { homepage?: boolean }) {
           <h2>Explore</h2>
           <nav aria-label="Footer shopping">
             <Link href={sectionHref("#the-edit")}>Shop dresses</Link>
-            <Link href={sectionHref("#collections")}>All collections</Link>
+            <Link href="/collections">All collections</Link>
             <Link href={sectionHref("#occasions")}>Occasion edit</Link>
             <Link href={sectionHref("#spotlight")}>In the spotlight</Link>
           </nav>

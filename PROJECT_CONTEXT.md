@@ -4,7 +4,7 @@ Compact map for future work. Treat the implementation and detailed docs as autho
 
 ## Purpose and stack
 
-Florangi is a mobile-first storefront and owner-operated admin for designer and made-to-measure dresses. Stack: Next.js 16.4 App Router, React 19, strict TypeScript, Prisma 6, PostgreSQL, Zod, Tailwind 4, Vitest and Playwright. `@/*` resolves to `src/*`. Node 20.9+ is expected.
+Florangi is a mobile-first storefront and owner-operated admin for designer and made-to-measure dresses. Stack: Next.js 16.4 App Router, React 19, strict TypeScript, Prisma 6, PostgreSQL, Zod and Tailwind 4. `@/*` resolves to `src/*`. Node 20.9+ is expected.
 
 ## Source map
 
@@ -15,11 +15,10 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - `src/server/{auth,payments,email,storage,http}/`: admin and guest-order access control; payment provider/reconciliation/refunds/expiry; encrypted outbox/provider/worker; local and Cloudinary storage; API errors.
 - `src/server/db.ts`, `env.ts`, `worker.ts`: Prisma client, validated environment, background processing.
 - `prisma/schema.prisma`, `prisma/migrations/`: data model and immutable deployed migration history; `prisma/seed.ts` seeds admin and development fixtures.
-- `tests/e2e/`: browser flows. `src/**/*.test.ts` are unit tests; `*.integration.test.ts` use a separate PostgreSQL database.
 - `docs/`: architecture, order state, owner decisions, recovery, backup/restore and storage migration procedures.
 - `docs/design-system.md`: approved Romantic Luxury palette and shared semantic color usage for storefront, admin, checkout and email.
 - `docs/preview-catalog.md`: owner-authorized website-derived UI fixtures, provenance and the guarded development import command.
-- `scripts/`: operational migration scripts. `public/`: static assets. Root configs define Next, TypeScript, ESLint, Vitest and Playwright.
+- `scripts/`: operational migration scripts. `public/`: static assets. Root configs define Next, TypeScript and ESLint.
 
 ## Product behavior and invariants
 
@@ -33,14 +32,13 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 
 ## Configuration and commands
 
-`.env.example` lists configuration names; `.env` contains secrets and must never be copied into context or logs. Key settings cover `DATABASE_URL`, `TEST_DATABASE_URL`, `SESSION_SECRET`, `ADMIN_*`, `PAYMENT_DRIVER`/Razorpay, `EMAIL_DRIVER`/Resend, `STORAGE_DRIVER`/Cloudinary and `CRON_SECRET`. Defaults and validation live in `src/server/env.ts`.
+`.env.example` lists configuration names; `.env` contains secrets and must never be copied into context or logs. Key settings cover `DATABASE_URL`, `SESSION_SECRET`, `ADMIN_*`, `PAYMENT_DRIVER`/Razorpay, `EMAIL_DRIVER`/Resend, `STORAGE_DRIVER`/Cloudinary and `CRON_SECRET`. Defaults and validation live in `src/server/env.ts`.
 
 - `npm run dev`, `npm run build`, `npm run start`
-- `npm run typecheck`, `npm run lint`, `npm test`
+- `npm run typecheck`, `npm run lint`
 - `npm run db:generate`, `npm run db:validate`, `npm run db:migrate`, `npm run db:deploy`, `npm run db:seed`
-- `npm run test:integration` requires `TEST_DATABASE_URL` to a disposable migrated PostgreSQL database. Never aim it at production or owner data. E2E requires Playwright Chromium.
 - `npm run worker` runs background expiry/email processing. Docker Compose exposes local Postgres on host port 5433.
 
 ## Change guidance
 
-Read the relevant guide under `node_modules/next/dist/docs/` before writing Next.js code (per `AGENTS.md`). Then inspect the target route/component, its service and domain rules, and nearby tests. Put business rules in domain/services, keep access checks server-side, validate inputs with existing Zod patterns, and update tests/docs when behavior changes. Migrations already applied in production are immutable; add incremental migrations and never reset production. For operational incidents follow `docs/operations-recovery.md` rather than editing database state directly.
+Read the relevant guide under `node_modules/next/dist/docs/` before writing Next.js code (per `AGENTS.md`). Then inspect the target route/component, its service and domain rules. Put business rules in domain/services, keep access checks server-side, validate inputs with existing Zod patterns, and update documentation when behavior changes. Migrations already applied in production are immutable; add incremental migrations and never reset production. For operational incidents follow `docs/operations-recovery.md` rather than editing database state directly.

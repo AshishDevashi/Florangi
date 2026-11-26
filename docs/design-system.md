@@ -22,9 +22,15 @@ External integrations cannot consume the app stylesheet. Keep the inline email c
 
 The homepage prioritizes photography: an edge-to-edge collection campaign, all visible collection thumbnails, an eight-product dress edit, large occasion campaigns, a shoppable product spotlight and a bridal feature. Titles and shopping actions replace long editorial copy. `src/components/storefront/home.module.css` scopes these styles to the homepage; Romantic Luxury tokens and bundled fonts remain authoritative. Homepage components live under `src/components/storefront/` and leave admin and checkout layouts independent. The research and merchandising rationale are in [storefront-homepage.md](storefront-homepage.md).
 
-The homepage service returns up to 48 active products in visible categories, with two photos per product. Search covers that edit, filters show eight dresses initially, and “Discover more” reveals four more. Product links open the existing size-selection flow. Public catalog data and availability remain server-derived. `StoreImage` requests responsive Cloudinary transformations directly; the hero is preloaded and other images load lazily. On mobile, the hero shows one large photograph, collections use a swipeable thumbnail strip with a visible next item, and product grids have two columns. A sticky header keeps search, bag and navigation available; the mobile menu lists categories directly. Dialogs retain native focus management and motion respects reduced-motion preferences. Source fixture labels are shortened for presentation while a conditional footer identifies the preview catalog.
+The homepage service returns up to 48 active products in visible categories, with two photos per product. Search covers that edit, filters show eight dresses initially, and “Discover more” reveals four more. Product links open the existing size-selection flow. Public catalog data and availability remain server-derived. `StoreImage` requests responsive Cloudinary transformations directly; the main hero is preloaded and its companion loads eagerly. On mobile, the hero shows one large photograph, collections use a swipeable thumbnail strip with a visible next item, and product grids have two columns. A sticky header keeps search, bag and navigation available; the mobile menu lists categories directly. Dialogs retain native focus management and motion respects reduced-motion preferences. Source fixture labels are shortened for presentation.
 
 The Tailwind Turbopack loader applies only to `globals.css`; CSS Modules use native Next compilation to retain their scoped class exports.
+
+The storefront navigation links to Home, Collection, In the spotlight and Appointment. Document scrolling is smooth unless reduced motion is requested.
+
+## Collections
+
+The collections index shows visible categories with active dresses. Individual collection pages retain direct access to visible empty categories and list all active dresses from that collection, using the storefront product cards and current stock and price data. Desktop and mobile navigation link to the index.
 
 ## Storefront product pages
 
@@ -33,6 +39,10 @@ Product pages reuse the storefront header, footer, Cloudinary image component an
 Designer dresses require an explicit size selection. The selected size drives the displayed price and a fresh server quote checks availability before a guest cart line is saved. A changed price requires a second, explicit acceptance; switching sizes resets that review. Requests are locked during saving and navigation. Sold-out responses disable the affected size. The mobile purchase bar appears when the main action is outside the usable viewport and directs shoppers to size selection before adding.
 
 Custom dresses retain the required measurement workflow, optional fit notes, fee breakdown and quantity of one. Inputs use effective configured ranges and show server field errors without discarding entries. Invalid or missing measurement configuration disables ordering for that item. Fit help explains measuring and links to support; it does not invent size-chart measurements. Description, size/fit and delivery/replacement sections use native disclosures. Dispatch targets retain the existing post-approval estimates; the replacement window comes from effective settings, with the same 96-hour default used by order creation when no setting exists. Product preview markers are displayed separately from the dress description, and related dresses are drawn only from the active, visible public catalog.
+
+## Contact page
+
+The contact page provides an editable message form preview with sending disabled; its entries are not submitted or saved. The separate WhatsApp link opens the owner-provided public chat number without sending the form contents.
 
 ## Buttons
 

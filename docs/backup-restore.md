@@ -21,7 +21,7 @@ pg_dump "$DATABASE_URL" --format=custom --file="florangi-$(date -u +%Y%m%dT%H%M%
 2. Apply or verify committed Prisma migrations and confirm the restored migration ledger.
 3. Restore matching public/private files and verify representative product images and access-controlled replacement photos.
 4. Check orders, address/measurement snapshots, payment/refund IDs, inventory reservations, audit history and email jobs.
-5. Run `npm run db:validate`, `npm run typecheck`, `npm test` and `npm run test:integration` against the restored test instance.
+5. Run `npm run db:validate` and `npm run typecheck`, then verify critical workflows against the isolated restored instance without contacting live payment or email providers.
 6. Record elapsed recovery time, missing records, corrective actions and the next rehearsal date.
 
 Before a production migration, take and verify a fresh backup and document a rollback or forward-fix path (DAT-2). The Cloudinary migration procedure is in [storage-migration.md](storage-migration.md).

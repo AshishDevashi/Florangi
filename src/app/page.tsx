@@ -27,7 +27,7 @@ export default async function HomePage() {
   const spotlight = products.slice(-4).reverse();
 
   return (
-    <div className={styles.home}>
+    <div className={styles.home} id="top">
       <StoreHeader
         products={products.map(({ id, name, slug, images, category }) => ({ id, name, slug, images: images.slice(0, 1), category }))}
         categories={categories}
@@ -91,7 +91,7 @@ export default async function HomePage() {
         <section className={styles.occasionSection} id="occasions" aria-labelledby="occasion-title">
           <div className={styles.campaignHeading}>
             <h2 id="occasion-title">An occasion to dress up.</h2>
-            <Link href="#collections" className={styles.textLink}>Explore every collection <ArrowUpRight size={15} aria-hidden="true" /></Link>
+            <Link href="/collections" className={styles.textLink}>Explore every collection <ArrowUpRight size={15} aria-hidden="true" /></Link>
           </div>
           {campaigns.length ? (
             <div className={styles.campaignGrid}>

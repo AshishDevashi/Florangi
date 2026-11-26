@@ -5,7 +5,7 @@ import { StoreImage } from "./store-image";
 import type { HomeProduct } from "./types";
 import styles from "./home.module.css";
 
-export function HomeProductCard({ product, imageIndex = 0 }: { product: HomeProduct; imageIndex?: number }) {
+export function HomeProductCard({ product, imageIndex = 0 }: { product: Omit<HomeProduct, "category">; imageIndex?: number }) {
   const prices = product.type === "CUSTOM_DRESS"
     ? [product.basePricePaise + (product.customizationFeePaise ?? 0)]
     : product.variants.map((variant) => variant.unitPricePaise);

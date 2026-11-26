@@ -10,11 +10,8 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Cloudinary migration backups
 /test-results/
-/playwright-report/
-/playwright/.cache/
 
 # next.js
 /.next/

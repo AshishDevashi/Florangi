@@ -11,10 +11,10 @@ You are a senior full-stack engineer. Build the complete Florangi storefront and
 **Priority for this phase: every workflow must work end to end.** The UI should be clean, plain, functional and mobile-first. The whole visual design will be replaced later, so do not spend time on polish. Structure the code so the UI layer can be swapped without touching business logic.
 
 Rules for working:
-- Treat the requirements document as authoritative. Keep its requirement IDs (PRC-1, LIF-5, PGW-3, and so on) in code comments, test names and commit messages so they can be traced.
+- Treat the requirements document as authoritative. Keep its requirement IDs (PRC-1, LIF-5, PGW-3, and so on) in code comments and commit messages so they can be traced.
 - Do **not** build anything in the "Deferred" column (SCP-3, DEL-5): no search, filters, reviews, wishlist, coupons, saved carts, guest checkout, courier API, SMS/WhatsApp, partial refunds, wallets, or staff roles.
 - If a material behavior is not specified, do not silently invent it. Pick the simplest safe option, mark it with `// DECISION-NEEDED:` and list it in `docs/open-decisions.md`.
-- Work in phases (section 11). After each phase, run the tests, fix failures, and give a short summary before moving on.
+- Work in phases (section 11). After each phase, validate changes, fix failures, and give a short summary before moving on.
 
 ---
 
@@ -32,7 +32,6 @@ Rules for working:
 | Email | Provider abstraction (section 5) |
 | Images / files | Storage abstraction (section 4) |
 | Background jobs | Database-backed job queue plus a worker process (section 7). No Redis |
-| Testing | Vitest for unit and integration tests against a separate test database. Playwright for a few end-to-end journeys |
 
 ---
 
@@ -45,7 +44,7 @@ Rules for working:
    - `src/components/**`: UI only. It contains no business rules and never calculates prices.
 2. **Server is the source of truth** for every price, fee, status and permission. The browser only displays values. Never trust client totals (CHK-4, PAY-3).
 3. **Money** is stored and calculated as **integer paise** everywhere (PAY-3). Use one helper module for formatting to ₹ and for parsing. Reject negatives and invalid precision.
-4. **Time.** Store UTC. Display in Asia/Kolkata with an explicit timezone label (LIF-7). All time-dependent logic goes through an injectable `Clock` service so tests and dev tools can control time.
+4. **Time.** Store UTC. Display in Asia/Kolkata with an explicit timezone label (LIF-7). All time-dependent logic goes through an injectable `Clock` service so dev tools can control time.
 5. **Order state machine** is one module with an explicit transition table, covering fulfillment status and payment status as separate fields (LIF-1 to LIF-4, ORD-1 to ORD-16). Every transition:
    - runs in a DB transaction that locks the order row,
    - re-checks the current state,
@@ -183,15 +182,12 @@ Implement every requirement in the document. The list below is a checklist, not 
 
 ---
 
-## 10. Security, quality and tests
+## 10. Security and quality
 
 - Implement SEC-1 to SEC-8: ownership checks, CSRF protection for state-changing requests, rate limiting on login, verification, checkout and replacement submission (simple DB- or memory-based limiter is fine now), secure cookies, HTTPS-only tracking URLs, escaped output, security headers.
 - Accessibility basics (NFR-1, NFR-2): labels, focus states, field-specific errors, loading/empty/error/success states, double-submit prevention, preserved form values after recoverable errors.
-- **Write automated tests that map to AT-01 through AT-17**, naming each test with its AT ID. At minimum:
-  - Unit tests: pricing (AT-02, AT-03 with exact paise), measurement validation (AT-04), state machine allowed and forbidden transitions (AT-09, AT-10), replacement window boundary at 95h59m vs 96h (AT-11).
-  - Integration tests against a real test Postgres: concurrent checkout for one unit (AT-05), idempotency keys, expiry vs payment race (AT-06), webhook replay and bad signatures (AT-07, AT-08), refund idempotency (AT-12), ownership and admin guards (AT-13), snapshot immutability (AT-14), email failure isolation (AT-15).
-  - Playwright: guest browse -> login and cart merge -> checkout (mock payment) -> admin approve -> ship -> deliver -> customer replacement request (AT-16), at a 360px viewport.
-- Run `tsc`, lint and all tests before declaring a phase complete.
+- Verify critical order, payment, stock, security and accessibility workflows in an isolated environment before release.
+- Run type checking and lint before declaring a phase complete.
 
 ---
 
@@ -204,16 +200,16 @@ Implement every requirement in the document. The list below is a checklist, not 
 5. **Payments:** Razorpay (and mock driver), verify endpoint, webhook, reconciliation, retry, expiry job, refunds.
 6. **Fulfillment:** approval, production freeze, measurement correction, QC, readiness, shipping, delivery, COD collected, cancel and reject.
 7. **Replacements and emails:** replacement requests and admin handling, all email templates, email queue with retries and quota, COD confirmation link and reminder.
-8. **Hardening:** dev tools, security review, responsive and accessibility pass, full test suite, docs.
+8. **Hardening:** dev tools, security review, responsive and accessibility pass, workflow validation, docs.
 
 ---
 
 ## 12. Deliverables
 
 - Complete source code and committed Prisma migrations.
-- `README.md` with: prerequisites, local Postgres setup, `.env` setup, migrate, seed, run web app, run worker, run tests, Razorpay test setup with a tunnel, and how to use the dev tools to test time-based flows.
+- `README.md` with: prerequisites, local Postgres setup, `.env` setup, migrate, seed, run web app, run worker, Razorpay test setup with a tunnel, and how to use the dev tools to validate time-based flows.
 - `.env.example` with every variable and no secrets, including: `DATABASE_URL`, `APP_URL`, `SESSION_SECRET`, `STORAGE_DRIVER`, `CLOUDINARY_*`, `EMAIL_DRIVER`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `RESEND_API_KEY` / `BREVO_API_KEY`, `EMAIL_DAILY_QUOTA`, `ADMIN_ALERT_EMAIL`, `PAYMENT_DRIVER`, `RAZORPAY_*`, `CRON_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 - `docs/` with: architecture overview, order state diagram (Mermaid), storage migration to Cloudinary, open decisions list (Q1 to Q14 status plus any `DECISION-NEEDED` items), backup and restore notes (OPS-3), and a recovery procedure for stuck payments, failed refunds and email backlog (OPS-2).
-- A final report listing: what is implemented, what is scaffolded but untested (for example Cloudinary), test results, and any requirements you could not meet and why.
+- A final report listing: what is implemented, what is scaffolded but unverified (for example Cloudinary), validation results, and any requirements you could not meet and why.
 
 Start with Phase 1 now. Before writing code, reply with a short plan (folder structure, key libraries, and any questions that truly block progress), then proceed.

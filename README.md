@@ -9,11 +9,10 @@ Prerequisites: Node.js 20.9 or newer, npm, and Docker with Compose.
 1. Copy `.env.example` to `.env`; set a unique `SESSION_SECRET` of at least 32 characters and an admin email/password.
 2. Start the development database with `docker compose up -d`. Florangi uses host port `5433` to avoid colliding with an existing local database.
 3. Install packages with `npm ci`.
-4. Install the browser used by the mobile journey with `npx playwright install chromium`.
-5. Generate the client and apply migrations with `npm run db:generate` and `npm run db:migrate`.
-6. Create the initial admin and development settings with `npm run db:seed`.
-7. Start the app with `npm run dev` and open `http://localhost:3000`.
-8. In another terminal, start scheduled work with `npm run worker`.
+4. Generate the client and apply migrations with `npm run db:generate` and `npm run db:migrate`.
+5. Create the initial admin and development settings with `npm run db:seed`.
+6. Start the app with `npm run dev` and open `http://localhost:3000`.
+7. In another terminal, start scheduled work with `npm run worker`.
 
 Customers shop and check out as guests; no customer account or login is available. Checkout saves first name, last name, phone number, email and delivery address directly on the order. Anyone can open `/track-order` and enter the displayed order number (for example, `FLR-2026-000001`) to view limited order status, items, totals and shipping progress. Private order details and payment/replacement actions at `/orders/[id]` require the order-specific secure link delivered by email; activating it grants access in that browser without creating a customer session. Public tracking never reveals buyer contact details, addresses, measurements, private notes or carrier tracking URLs.
 
@@ -33,22 +32,18 @@ Restart the app and worker after configuration changes. Do not switch a database
 
 ## Checks
 
-- `npm run test:integration` (requires the separate `TEST_DATABASE_URL` database)
-- `npm run test:e2e` (requires Chromium from Playwright)
+- `npm run typecheck`
+- `npm run lint`
 - `npm run db:validate`
 - `npm run worker` (separate process for expiry and email jobs)
 
 ## Migration history
 
-The pre-production dry-run migrations are consolidated into `prisma/migrations/20261103010000_init/migration.sql`, including all 25 custom integrity checks and the optional category-image table. Local development databases have been aligned with this baseline without resetting owner-entered data. Integration tests create synthetic fixtures; use a separate disposable database rather than a database containing owner-entered data.
+The pre-production dry-run migrations are consolidated into `prisma/migrations/20261103010000_init/migration.sql`, including all 25 custom integrity checks and the optional category-image table. Local development databases have been aligned with this baseline without resetting owner-entered data.
 
 Apply this baseline to new databases with `npm run db:deploy`. Once deployed to production, keep applied migrations immutable and add incremental migrations for schema changes. Never reset a production database.
 
-## PostgreSQL integration tests
-
-Integration tests use a separate disposable database and never target the development database. Create it once with `createdb -h localhost -p 5433 -U florangi florangi_test`, apply migrations with `DATABASE_URL=postgresql://florangi:florangi_dev@localhost:5433/florangi_test?schema=public npm run db:deploy`, then run `TEST_DATABASE_URL=postgresql://florangi:florangi_dev@localhost:5433/florangi_test?schema=public npm run test:integration`. The suite creates synthetic customers, catalog rows and orders in this database; do not point it at production data.
-
-The current build includes admin-only authentication, catalog/admin inventory, local guest carts and checkout, authoritative quotes, COD and pending-online orders, payment reconciliation/refunds/expiry, public order tracking and token-protected order management, fulfillment/shipping/COD collection, replacement requests, signed COD confirmation/reminder jobs, encrypted email delivery, a Resend driver, and the database worker. Remaining release work includes owner policy approvals, live provider verification, Cloudinary credentialed testing, operational recovery/backup exercises, and broader Playwright/accessibility acceptance coverage.
+The current build includes admin-only authentication, catalog/admin inventory, local guest carts and checkout, authoritative quotes, COD and pending-online orders, payment reconciliation/refunds/expiry, public order tracking and token-protected order management, fulfillment/shipping/COD collection, replacement requests, signed COD confirmation/reminder jobs, encrypted email delivery, a Resend driver, and the database worker. Remaining release work includes owner policy approvals, live provider verification, Cloudinary credentialed validation, operational recovery/backup exercises, and accessibility and workflow acceptance checks. There is currently no automated test suite.
 
 ## Development-only defaults
 

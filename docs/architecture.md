@@ -28,13 +28,13 @@ Public collection and product queries require an active product in a visible cat
 
 ## Phase 3 and 4 status
 
-Cart quotes re-read active catalog, stock, measurement ranges and shipping settings on the server. The browser stores guest cart lines locally; changed prices require acceptance. Checkout uses integer paise, validates contact and India address details, snapshots address/settings/items and stores contact fields directly on the order. It creates COD or pending-online orders. Order creation locks product/variant rows, allocates human-readable numbers from a database counter, reserves DD stock with the order in one transaction, and enforces an idempotency key. Pending-payment cancellation requires the order's guest access token, locks the order and releases reservations once. Real-Postgres integration tests cover stock races, idempotency, and cancellation release.
+Cart quotes re-read active catalog, stock, measurement ranges and shipping settings on the server. The browser stores guest cart lines locally; changed prices require acceptance. Checkout uses integer paise, validates contact and India address details, snapshots address/settings/items and stores contact fields directly on the order. It creates COD or pending-online orders. Order creation locks product/variant rows, allocates human-readable numbers from a database counter, reserves DD stock with the order in one transaction, and enforces an idempotency key. Pending-payment cancellation requires the order's guest access token, locks the order and releases reservations once.
 
 ## Phase 5 and 6 status
 
 Payment-provider order creation reuses the saved provider order, and browser callbacks and signed webhooks use the same capture reconciliation path. Amount, currency, provider order ownership and captured status are checked before payment is accepted. Webhook events are persisted/deduplicated with sensitive fields omitted; failed attempts do not downgrade a paid order. Late capture after expiry/cancellation sets `REFUND_REQUIRED` without re-reserving stock. Full refunds use provider idempotency and are marked complete only after provider verification. Unpaid expiry and email processing run in the database worker; a secret-protected cron tick is also available.
 
-Admin fulfillment includes approval/rejection/cancellation, the 12-hour custom-production freeze, COD phone confirmation evidence, per-line QC/readiness, manual shipment, delivered-time checks, explicit COD collection, private notes, audit/timeline, and transactional status emails. Integration tests exercise order/stock races, expiry/late capture, capture replay, refund idempotency, and email job dedupe.
+Admin fulfillment includes approval/rejection/cancellation, the 12-hour custom-production freeze, COD phone confirmation evidence, per-line QC/readiness, manual shipment, delivered-time checks, explicit COD collection, private notes, audit/timeline, and transactional status emails.
 
 ## Phase 7 status
 

@@ -1,20 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { ArrowUpRight, Menu, Search, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { StoreImage } from "./store-image";
 import { collectionLabel, type HomeCategory, type HomeProduct } from "./types";
 import styles from "./home.module.css";
-
-const navigation = [
-  { href: "#the-edit", label: "Shop dresses" },
-  { href: "#collections", label: "Collections" },
-  { href: "#occasions", label: "Occasion edit" },
-  { href: "#spotlight", label: "In the spotlight" },
-];
 
 export function StoreHeader({ products, categories, homepage = true }: { products: Pick<HomeProduct, "id" | "name" | "slug" | "images" | "category">[]; categories: HomeCategory[]; homepage?: boolean }) {
   const [panel, setPanel] = useState<"search" | "menu" | null>(null);
@@ -23,6 +16,19 @@ export function StoreHeader({ products, categories, homepage = true }: { product
   const normalized = query.trim().toLocaleLowerCase();
   const results = normalized ? products.filter((product) => `${product.name} ${collectionLabel(product.category.name)}`.toLocaleLowerCase().includes(normalized)) : [];
   const sectionHref = (hash: string) => homepage ? hash : `/${hash}`;
+  const navigation = [
+    { href: homepage ? "#top" : "/", label: "Home" },
+    { href: "/collections", label: "Collection" },
+    { href: sectionHref("#spotlight"), label: "In the spotlight" },
+    { href: "/contact", label: "Appointment" },
+  ];
+  const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    setPanel(null);
+    if (homepage && href.startsWith("#") && window.location.hash === href && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      event.preventDefault();
+      requestAnimationFrame(() => document.getElementById(href.slice(1))?.scrollIntoView());
+    }
+  };
 
   return (
     <>
@@ -38,11 +44,7 @@ export function StoreHeader({ products, categories, homepage = true }: { product
           <div className={styles.headerRight}><Link className={styles.trackLink} href="/track-order">Track order</Link><Link className={styles.bagLink} href="/cart" aria-label="Shopping bag"><ShoppingBag size={21} strokeWidth={1.4} aria-hidden="true" /><span>Bag</span></Link></div>
         </div>
         <nav className={styles.desktopNav} aria-label="Main navigation">
-          {navigation.slice(0, 3).map((item) => <Link href={sectionHref(item.href)} key={item.href}>{item.label}</Link>)}
-          {categories.filter((category) => /bridal/i.test(category.name)).slice(0, 1).map((category) => (
-            <Link href={`/collections/${category.slug}`} key={category.id}>Bridal reception</Link>
-          ))}
-          <Link href={sectionHref("#spotlight")}>In the spotlight</Link>
+          {navigation.map((item) => <Link href={item.href} key={item.label} onClick={(event) => navigate(event, item.href)}>{item.label}</Link>)}
         </nav>
       </header>
       <Dialog open={panel === "search"} onClose={() => setPanel(null)} title="Find your next favourite" description="Search this season’s edit by dress name or occasion." initialFocusRef={searchRef}>
@@ -55,14 +57,11 @@ export function StoreHeader({ products, categories, homepage = true }: { product
       </Dialog>
       <Dialog open={panel === "menu"} onClose={() => setPanel(null)} title="Explore Florangi" description="Find something that feels like you.">
         <nav className={styles.menuLinks} aria-label="Mobile navigation">
-          <Link href={sectionHref("#the-edit")} onClick={() => setPanel(null)}>Shop all dresses <ArrowUpRight size={18} aria-hidden="true" /></Link>
-          {categories.map((category) => (
-            <Link href={`/collections/${category.slug}`} key={category.id} onClick={() => setPanel(null)}>
-              {collectionLabel(category.name)} <ArrowUpRight size={18} aria-hidden="true" />
+          {navigation.map((item) => (
+            <Link href={item.href} key={item.label} onClick={(event) => navigate(event, item.href)}>
+              {item.label} <ArrowUpRight size={18} aria-hidden="true" />
             </Link>
           ))}
-          <Link href="/track-order">Track your order<ArrowUpRight size={18} aria-hidden="true" /></Link>
-          <Link href="/contact">Get in touch<ArrowUpRight size={18} aria-hidden="true" /></Link>
         </nav>
       </Dialog>
     </>
