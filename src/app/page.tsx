@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { buttonStyles } from "@/components/ui/button";
+import { ArrowUpRight } from "lucide-react";
 import { CampaignCard } from "@/components/storefront/campaign-card";
 import { CollectionCard } from "@/components/storefront/collection-card";
+import { HeroSlideshow } from "@/components/storefront/hero-slideshow";
 import { HomeEdit } from "@/components/storefront/home-edit";
 import { HomeProductCard } from "@/components/storefront/home-product-card";
 import { StoreFooter } from "@/components/storefront/store-footer";
@@ -25,6 +25,11 @@ export default async function HomePage() {
   const companionImage = collection?.images[1]?.url;
   const heroName = collectionLabel(collection?.name ?? "The Florangi edit");
   const collectionHref = collection ? `/collections/${collection.slug}` : "#the-edit";
+  const heroSlides = [collection, ...categories.filter((category) => category.id !== collection?.id)]
+    .flatMap((category) => category?.images[1]?.url
+      ? [{ image: category.images[1].url, name: collectionLabel(category.name), href: `/collections/${category.slug}` }]
+      : []);
+  if (!heroSlides.length) heroSlides.push({ image: heroImage ?? "/images/demo-dress.svg", name: heroName, href: collectionHref });
   const spotlight = products.slice(-4).reverse();
 
   return (
@@ -34,32 +39,7 @@ export default async function HomePage() {
         categories={categories}
       />
       <main id="main-content">
-        <section className={styles.hero} aria-labelledby="hero-title">
-          <div className={`${styles.heroImages} ${companionImage ? "" : styles.singlePhoto}`}>
-            <div className={styles.heroPhoto}>
-              <StoreImage
-                src={heroImage ?? "/images/demo-dress.svg"}
-                alt={`${heroName} — Florangi occasionwear`}
-                fill
-                preload
-                sizes="(max-width: 700px) 100vw, 50vw"
-                className={styles.coverImage}
-              />
-            </div>
-            {companionImage && (
-              <div className={styles.heroCompanion}>
-                <StoreImage src={companionImage} alt={`Another look from ${heroName}`} fill loading="eager" sizes="50vw" className={styles.coverImage} />
-              </div>
-            )}
-          </div>
-          <div className={styles.heroCaption}>
-            <p>The collection</p>
-            <h1 id="hero-title">{heroName}</h1>
-            <Link href={collectionHref} className={buttonStyles({ variant: "primary", className: styles.campaignButton })}>
-              Shop the collection <ArrowUpRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
+        <HeroSlideshow image={heroImage ?? "/images/demo-dress.svg"} companionImage={companionImage} name={heroName} href={collectionHref} slides={heroSlides} />
 
         <section className={`${styles.section} ${styles.collectionSection}`} id="collections" aria-labelledby="collections-title">
           <div className={styles.sectionHeading}>
