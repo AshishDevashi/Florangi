@@ -131,11 +131,11 @@ export default async function HomePage() {
           </section>
         )}
 
-        <div className={styles.careLinks}>
+        {/* <div className={styles.careLinks}>
           <Link href="/contact">Need help finding the one? <ArrowRight size={14} aria-hidden="true" /></Link>
           <Link href="/shipping">Delivery information <ArrowUpRight size={14} aria-hidden="true" /></Link>
           <Link href="/track-order">Track your order <ArrowUpRight size={14} aria-hidden="true" /></Link>
-        </div>
+        </div> */}
       </main>
       <StoreFooter />
     </div>

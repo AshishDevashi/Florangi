@@ -3,24 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
+import { ArrowLeft, ArrowRight, Banknote, CreditCard, ShoppingBag } from "lucide-react";
+import { StoreImage } from "@/components/storefront/store-image";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { formatPaise } from "@/server/domain/money";
 import { openRazorpayCheckout, type RazorpayClientOrder, type RazorpayPaymentResponse } from "@/components/checkout/payment-client";
-
-type CartLine = {
-  lineId?: string;
-  productId: string;
-  productName?: string;
-  type?: "DESIGNER_DRESS" | "CUSTOM_DRESS";
-  variantId?: string | null;
-  size?: string;
-  measurements?: Record<string, unknown>;
-  quantity: number;
-  acceptedUnitPaise?: number | null;
-  unitPricePaise?: number;
-  lineTotalPaise?: number;
-  quoteVersion?: string;
-  state: string;
-};
+import type { QuotedCartLine as CartLine } from "@/server/services/cart";
 
 type GuestCartLine = {
   lineId: string;
@@ -77,6 +65,8 @@ function readGuestCart(): GuestCartLine[] {
 export function CheckoutForm() {
   const router = useRouter();
   const idempotencyKey = useRef<string | null>(null);
+  const quoteLock = useRef(false);
+  const submitLock = useRef(false);
   const [values, setValues] = useState({
     firstName: "",
     lastName: "",
@@ -96,6 +86,7 @@ export function CheckoutForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   async function loadCart() {
     const localLines = readGuestCart();
@@ -155,24 +146,36 @@ export function CheckoutForm() {
     });
   }, []);
 
-  async function changePaymentMethod(method: "ONLINE" | "COD") {
-    setPaymentMethod(method);
+  async function refreshQuote(method: "ONLINE" | "COD") {
+    if (quoteLock.current || busy) return;
+    quoteLock.current = true;
+    setQuoteLoading(true);
     setQuote(null);
     setError("");
     try {
       await loadQuote(method);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Checkout totals could not be refreshed.");
+    } finally {
+      quoteLock.current = false;
+      setQuoteLoading(false);
     }
+  }
+
+  function changePaymentMethod(method: "ONLINE" | "COD") {
+    if (quoteLock.current || busy || method === paymentMethod) return;
+    setPaymentMethod(method);
+    void refreshQuote(method);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!cart || !quote || busy) return;
+    if (!cart || !quote || busy || quoteLock.current || submitLock.current) return;
+    submitLock.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     setBusy(true);
     setError("");
-    const lines = cart.lines.map((line) => ({
+    const lines = quote.lines.map((line) => ({
       lineId: line.lineId,
       productId: line.productId,
       variantId: line.variantId ?? null,
@@ -227,6 +230,7 @@ export function CheckoutForm() {
             const verification = await verified.json() as { error?: string };
             if (!verified.ok) {
               setError(verification.error ?? "Payment is not verified yet. Check your order status.");
+              submitLock.current = false;
               setBusy(false);
               return;
             }
@@ -235,10 +239,12 @@ export function CheckoutForm() {
           },
           onFailure: (message) => {
             setError(message);
+            submitLock.current = false;
             setBusy(false);
           },
-          onDismiss: () => setBusy(false),
+          onDismiss: () => { submitLock.current = false; setBusy(false); },
         });
+        submitLock.current = false;
         setBusy(false);
         return;
       }
@@ -246,101 +252,168 @@ export function CheckoutForm() {
       router.push(`/orders/${result.order.id}/confirmation`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "A network error interrupted checkout. Your details are still here; retry safely.");
+      submitLock.current = false;
       setBusy(false);
     }
   }
 
-  if (loading) return <p className="py-10 text-sm text-muted" role="status">Loading checkout…</p>;
+  if (loading) return <p className="border-t border-border py-12 text-sm text-muted" role="status">Preparing your checkout…</p>;
 
-  const containsCustom = cart?.lines.some((line) => line.type === "CUSTOM_DRESS") ?? false;
+  if (!cart || cart.hasBlockingLines || cart.needsAcceptance) {
+    return (
+      <div className="rounded-xl border border-danger-border bg-danger-bg p-6">
+        <p className="text-sm leading-6 text-danger" role="alert">{error || "Your bag needs to be reviewed before checkout."}</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {!cart && <Button onClick={() => {
+            setLoading(true);
+            setError("");
+            void loadCart().catch((caught: unknown) => setError(caught instanceof Error ? caught.message : "Your cart could not be loaded.")).finally(() => setLoading(false));
+          }}>Try again</Button>}
+          <Link className={buttonStyles()} href="/cart">Return to bag</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const containsCustom = cart.lines.some((line) => line.type === "CUSTOM_DRESS");
+  const itemCount = cart.lines.reduce((total, line) => total + line.quantity, 0);
+  const eagerImages = new Set(cart.lines.slice(0, 3).map((line) => line.imageUrl).filter((url): url is string => Boolean(url)));
+  const inputClass = "mt-2 block min-h-12 w-full rounded-md border border-border-strong bg-background px-3 text-sm text-foreground focus:border-accent disabled:opacity-60";
+
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_21rem]">
-      <form className="space-y-8" onSubmit={submit}>
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-1 font-serif text-2xl">Your contact details</legend>
-          {contactFields.map((field) => (
-            <label className="text-sm" htmlFor={field.name} key={field.name}>
-              {field.label}
-              <input
-                autoComplete={field.autocomplete}
-                className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3"
-                id={field.name}
-                name={field.name}
-                onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-                pattern={field.name === "phoneNumber" ? "(\\+91[- ]?)?[6-9][0-9]{9}" : undefined}
-                required
-                type="text"
-                value={values[field.name]}
-              />
+    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
+      <aside aria-labelledby="checkout-summary" className="rounded-xl border border-border bg-surface p-6 sm:p-8 lg:order-2 lg:sticky lg:top-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-3xl" id="checkout-summary">Order summary</h2>
+            <p className="mt-1 text-xs text-muted">{itemCount} {itemCount === 1 ? "item" : "items"} in your bag</p>
+          </div>
+          <Link className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-4" href="/cart">Edit bag</Link>
+        </div>
+        <ul aria-label="Items in your bag" className="mt-4 max-h-72 divide-y divide-border overflow-y-auto" tabIndex={cart.lines.length > 3 ? 0 : undefined}>
+          {cart.lines.map((line, index) => {
+            const pricedLine = quote?.lines.find((item) => item.lineId === line.lineId);
+            return (
+              <li className="flex gap-3 py-4" key={line.lineId ?? `${line.productId}-${index}`}>
+                <div className="relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-md bg-surface-muted">
+                  {line.imageUrl ? <StoreImage src={line.imageUrl} alt="" fill loading={eagerImages.has(line.imageUrl) ? "eager" : "lazy"} sizes="64px" className="object-cover object-[center_35%]" /> : <ShoppingBag className="absolute inset-0 m-auto text-muted" size={22} strokeWidth={1.2} aria-hidden="true" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-medium">{line.productName ?? "Dress"}</p>
+                  <p className="mt-1 text-xs text-muted">{line.type === "CUSTOM_DRESS" ? "Made to measure" : line.size ? `Size ${line.size}` : "Selected size"} · Qty {line.quantity}</p>
+                  <p className="mt-2 text-sm font-semibold">{pricedLine?.lineTotalPaise === undefined ? "—" : formatPaise(pricedLine.lineTotalPaise)}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="space-y-4 border-t border-border pt-5 text-sm" aria-live="polite">
+          <SummaryRow label="Subtotal" value={quote?.subtotalPaise} />
+          <SummaryRow label="Shipping" value={quote?.shippingFeePaise} free />
+          <div className="flex justify-between gap-4 border-t border-border pt-5 text-base font-semibold"><span>Total</span><span>{quote ? formatPaise(quote.totalPaise) : "—"}</span></div>
+          {quoteLoading && <p className="text-xs text-muted" role="status">Updating totals…</p>}
+        </div>
+        {!quote && !quoteLoading && error && (
+          <div className="mt-5 rounded-lg border border-danger-border bg-danger-bg p-4">
+            <p className="text-sm leading-6 text-danger" role="alert">{error}</p>
+            <Button className="mt-3 w-full" onClick={() => void refreshQuote(paymentMethod)}>Retry totals</Button>
+          </div>
+        )}
+        <p className="mt-5 text-xs leading-5 text-muted">Prices and availability are checked again when you place your order.</p>
+      </aside>
+
+      <form className="space-y-6 lg:order-1" onSubmit={submit}>
+        <fieldset className="rounded-xl border border-border bg-surface p-5 sm:p-8" disabled={busy}>
+          <legend className="sr-only">Your contact details</legend>
+          <h2 className="font-serif text-3xl">Your contact details</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">We’ll use these details to contact you about your order.</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {contactFields.map((field) => (
+              <label className="text-sm font-medium" htmlFor={field.name} key={field.name}>
+                {field.label}
+                <input
+                  autoComplete={field.autocomplete}
+                  className={inputClass}
+                  id={field.name}
+                  name={field.name}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  pattern={field.name === "phoneNumber" ? "(\\+91(?:-| )?)?[6-9][0-9]{9}" : undefined}
+                  required
+                  type={field.name === "phoneNumber" ? "tel" : "text"}
+                  value={values[field.name]}
+                />
+              </label>
+            ))}
+            <label className="text-sm font-medium" htmlFor="checkoutEmail">
+              Email address
+              <input autoComplete="email" className={inputClass} id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} />
             </label>
-          ))}
-          <label className="text-sm sm:col-span-2" htmlFor="checkoutEmail">
-            Email address
-            <input autoComplete="email" className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3 sm:max-w-md" id="checkoutEmail" name="email" onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} required type="email" value={values.email} />
-          </label>
+          </div>
         </fieldset>
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-1 font-serif text-2xl">Delivery address</legend>
-          {addressFields.map((field) => (
-            <label className={`text-sm ${field.name === "line1" || field.name === "line2" ? "sm:col-span-2" : ""}`} htmlFor={field.name} key={field.name}>
-              {field.label}
-              <input
-                autoComplete={field.autocomplete}
-                className="mt-1 block min-h-11 w-full border border-border-strong bg-surface px-3 outline-none focus:border-accent focus:ring-2 focus:ring-focus/20"
-                id={field.name}
-                maxLength={field.name === "pinCode" ? 6 : 240}
-                name={field.name}
-                onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-                pattern={field.name === "pinCode" ? "[1-9][0-9]{5}" : undefined}
-                required={!(("optional" in field) && field.optional)}
-                value={values[field.name]}
-              />
-              {field.name === "pinCode" && <span className="mt-1 block text-xs text-muted">India only · six-digit PIN</span>}
-            </label>
-          ))}
+        <fieldset className="rounded-xl border border-border bg-surface p-5 sm:p-8" disabled={busy}>
+          <legend className="sr-only">Delivery address</legend>
+          <h2 className="font-serif text-3xl">Delivery address</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">Tell us where to send your order in India.</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {addressFields.map((field) => (
+              <label className={`text-sm font-medium ${field.name === "line1" || field.name === "line2" ? "sm:col-span-2" : ""}`} htmlFor={field.name} key={field.name}>
+                {field.label}
+                <input
+                  autoComplete={field.autocomplete}
+                  className={inputClass}
+                  id={field.name}
+                  inputMode={field.name === "pinCode" ? "numeric" : undefined}
+                  maxLength={field.name === "pinCode" ? 6 : 240}
+                  name={field.name}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  pattern={field.name === "pinCode" ? "[1-9][0-9]{5}" : undefined}
+                  required={!(("optional" in field) && field.optional)}
+                  value={values[field.name]}
+                />
+                {field.name === "pinCode" && <span className="mt-1 block text-xs font-normal text-muted">India only · six-digit PIN</span>}
+              </label>
+            ))}
+          </div>
         </fieldset>
 
-        <fieldset className="space-y-3 border-t border-border pt-6">
-          <legend className="font-serif text-2xl">Payment method</legend>
-          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "ONLINE" ? "border-accent bg-surface" : "border-border-strong"}`}>
-            <input checked={paymentMethod === "ONLINE"} name="paymentMethod" onChange={() => void changePaymentMethod("ONLINE")} type="radio" />
-            <span className="text-sm font-medium">Pay online</span>
-          </label>
-          <label className={`flex min-h-14 items-center gap-3 border px-4 ${paymentMethod === "COD" ? "border-accent bg-surface" : "border-border-strong"}`}>
-            <input checked={paymentMethod === "COD"} name="paymentMethod" onChange={() => void changePaymentMethod("COD")} type="radio" />
-            <span className="text-sm font-medium">Cash on Delivery</span>
-          </label>
+        <fieldset className="rounded-xl border border-border bg-surface p-5 sm:p-8" disabled={busy || quoteLoading}>
+          <legend className="sr-only">Payment method</legend>
+          <h2 className="font-serif text-3xl">Payment method</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">Choose how you would like to pay.</p>
+          <div className="mt-6 grid gap-3">
+            <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-lg border p-4 ${paymentMethod === "ONLINE" ? "border-accent bg-surface-hover" : "border-border-strong"}`}>
+              <input checked={paymentMethod === "ONLINE"} name="paymentMethod" onChange={() => changePaymentMethod("ONLINE")} type="radio" />
+              <CreditCard className="text-accent" size={21} strokeWidth={1.5} aria-hidden="true" />
+              <span><span className="block text-sm font-semibold">Pay online</span><span className="mt-1 block text-xs text-muted">Continue to online payment after placing your order.</span></span>
+            </label>
+            <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-lg border p-4 ${paymentMethod === "COD" ? "border-accent bg-surface-hover" : "border-border-strong"}`}>
+              <input checked={paymentMethod === "COD"} name="paymentMethod" onChange={() => changePaymentMethod("COD")} type="radio" />
+              <Banknote className="text-accent" size={21} strokeWidth={1.5} aria-hidden="true" />
+              <span><span className="block text-sm font-semibold">Cash on Delivery</span><span className="mt-1 block text-xs text-muted">Pay when your order is delivered.</span></span>
+            </label>
+          </div>
           {paymentMethod === "COD" && containsCustom && (
-            <p className="border-l-2 border-warning-border bg-surface px-4 py-3 text-sm leading-6 text-warning">This dress is made to your measurements and cannot be resold. Please place a Cash on Delivery order only if you intend to accept delivery.</p>
+            <p className="mt-4 rounded-lg border border-warning-border bg-warning-bg p-4 text-sm leading-6 text-warning">This dress is made to your measurements and cannot be resold. Please place a Cash on Delivery order only if you intend to accept delivery.</p>
           )}
         </fieldset>
-        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-        <button className="min-h-12 w-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:cursor-wait disabled:opacity-50 sm:w-auto" disabled={busy || !quote || !cart || cart.hasBlockingLines || cart.needsAcceptance} type="submit">
-          {busy ? "Placing order…" : paymentMethod === "COD" ? "Place Cash on Delivery order" : "Place order"}
-        </button>
-      </form>
-
-      <aside className="h-fit border-t border-border pt-5 lg:border-l lg:border-t-0 lg:pl-6">
-        <h2 className="font-serif text-2xl">Order summary</h2>
-        <ul className="mt-4 divide-y divide-border text-sm">
-          {cart?.lines.map((line) => (
-            <li className="flex justify-between gap-4 py-3" key={line.lineId}>
-              <span>{line.productName ?? "Dress"} · {line.type === "CUSTOM_DRESS" ? "Custom" : line.size} × {line.quantity}</span>
-              <span className="shrink-0">{formatPaise(line.lineTotalPaise ?? 0)}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-          <SummaryRow label="Subtotal" value={quote?.subtotalPaise} />
-          <SummaryRow label="Shipping" value={quote?.shippingFeePaise} />
-          <div className="flex justify-between border-t border-border pt-3 font-semibold"><span>Total</span><span>{formatPaise(quote?.totalPaise ?? 0)}</span></div>
+        {!quote && !quoteLoading && error && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-danger-border bg-danger-bg p-4">
+            <p className="text-sm text-danger">Your totals couldn’t be updated.</p>
+            <Button size="sm" onClick={() => void refreshQuote(paymentMethod)}>Retry totals</Button>
+          </div>
+        )}
+        {error && quote && <p className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger" role="alert">{error}</p>}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:underline" href="/cart"><ArrowLeft size={16} aria-hidden="true" /> Return to bag</Link>
+          <Button className="min-h-12 sm:min-w-64" variant="primary" disabled={busy || quoteLoading || !quote} type="submit">
+            {busy ? "Placing order…" : paymentMethod === "COD" ? "Place Cash on Delivery order" : "Place order"} <ArrowRight size={16} aria-hidden="true" />
+          </Button>
         </div>
-        <Link className="mt-5 inline-block text-xs underline" href="/cart">Return to bag</Link>
-      </aside>
+      </form>
     </div>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value?: number }) {
-  return <div className="flex justify-between"><span>{label}</span><span>{formatPaise(value ?? 0)}</span></div>;
+function SummaryRow({ label, value, free = false }: { label: string; value?: number; free?: boolean }) {
+  return <div className="flex justify-between gap-4"><span className="text-muted">{label}</span><span>{value === undefined ? "—" : free && value === 0 ? "Free" : formatPaise(value)}</span></div>;
 }

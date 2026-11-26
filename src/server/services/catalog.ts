@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { requireAdmin } from "@/server/auth/guards";
 import { db } from "@/server/db";
-import { getStorageProvider } from "@/server/storage";
+import { getPublicImageUrl, getStorageProvider } from "@/server/storage";
 import type { StoredFile } from "@/server/storage/local";
 import { auditJson, writeAuditEntry } from "@/server/services/audit";
 import { getEffectiveSetting } from "@/server/services/settings";
@@ -69,16 +69,7 @@ function toPublicProduct(product: {
   variants: Array<{ id: string; size: "XS" | "S" | "M"; sizePremiumPaise: number; onHand: number; reserved: number }>;
 }) {
   const images = product.images.map((image) => ({
-    url: image.provider === "static"
-      ? `/${image.key}`
-        : getStorageProvider(image.provider).getPublicUrl({
-          provider: image.provider as StoredFile["provider"],
-          key: image.key,
-          mimeType: image.mimeType,
-          size: image.sizeBytes,
-          width: image.width ?? undefined,
-          height: image.height ?? undefined,
-        }),
+    url: getPublicImageUrl(image),
     position: image.position,
   }));
 
@@ -101,20 +92,13 @@ function toPublicProduct(product: {
   };
 }
 
-function categoryImageUrl(image: { provider: string; key: string; mimeType: string; sizeBytes: number; width: number | null; height: number | null }) {
-  return image.provider === "static" ? `/${image.key}` : getStorageProvider(image.provider).getPublicUrl({
-    provider: image.provider as StoredFile["provider"], key: image.key, mimeType: image.mimeType,
-    size: image.sizeBytes, width: image.width ?? undefined, height: image.height ?? undefined,
-  });
-}
-
 export async function listVisibleCategories() {
   const categories = await db.category.findMany({
     where: { visible: true, products: { some: { status: "ACTIVE" } } },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: { id: true, name: true, slug: true, sortOrder: true, images: { orderBy: { position: "asc" } } },
   });
-  return categories.map((category) => ({ ...category, images: category.images.map((image) => ({ ...image, url: categoryImageUrl(image) })) }));
+  return categories.map((category) => ({ ...category, images: category.images.map((image) => ({ ...image, url: getPublicImageUrl(image) })) }));
 }
 
 export async function listFeaturedProducts() {
@@ -150,7 +134,7 @@ export async function getPublicCollection(slug: string) {
     include: publicProductInclude,
     orderBy: { createdAt: "desc" },
   });
-  return { ...category, images: category.images.map((image) => ({ ...image, url: categoryImageUrl(image) })), products: products.map(toPublicProduct) };
+  return { ...category, images: category.images.map((image) => ({ ...image, url: getPublicImageUrl(image) })), products: products.map(toPublicProduct) };
 }
 
 export async function getPublicProduct(slug: string) {
@@ -171,7 +155,7 @@ export async function listAdminCategories() {
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: { images: { orderBy: { position: "asc" } }, _count: { select: { products: true } } },
   });
-  return categories.map((category) => ({ ...category, images: category.images.map((image) => ({ ...image, url: categoryImageUrl(image) })) }));
+  return categories.map((category) => ({ ...category, images: category.images.map((image) => ({ ...image, url: getPublicImageUrl(image) })) }));
 }
 
 export async function saveCategoryImage(categoryId: string, position: number, buffer: Buffer, mimeType: string) {

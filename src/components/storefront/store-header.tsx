@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, type MouseEvent } from "react";
-import { ArrowUpRight, Menu, Search, ShoppingBag } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Menu, Search, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { StoreImage } from "./store-image";
@@ -20,6 +20,7 @@ export function StoreHeader({ products, categories, homepage = true }: { product
     { href: homepage ? "#top" : "/", label: "Home" },
     { href: "/collections", label: "Collection" },
     { href: sectionHref("#spotlight"), label: "In the spotlight" },
+    { href: "/about", label: "About us" },
     { href: "/contact", label: "Appointment" },
   ];
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -33,7 +34,7 @@ export function StoreHeader({ products, categories, homepage = true }: { product
   return (
     <>
       <a className={styles.skipLink} href="#main-content">Skip to content</a>
-      <div className={styles.announcement}><Link href={sectionHref("#the-edit")}>Discover the Florangi dress edit <ArrowUpRight size={12} aria-hidden="true" /></Link></div>
+      <div className={styles.announcement}><Link href={sectionHref("#the-edit")} onClick={(event) => navigate(event, sectionHref("#the-edit"))}>Discover the Florangi dress edit <ArrowDownRight size={12} aria-hidden="true" /></Link></div>
       <header className={styles.header}>
         <div className={styles.headerMain}>
           <div className={styles.headerTools}>

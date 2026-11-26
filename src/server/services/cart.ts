@@ -7,6 +7,7 @@ import { calculateShippingFeePaise, calculateSubtotalPaise, priceUnit } from "@/
 import { parseMeasurementRanges, validateMeasurements, type CustomMeasurements } from "@/server/domain/measurements";
 import { systemClock, type Clock } from "@/server/domain/clock";
 import { getEffectiveSettings } from "@/server/services/settings";
+import { getPublicImageUrl } from "@/server/storage";
 
 const cartLineSchema = z.object({
   lineId: z.string().min(1).max(100).optional(),
@@ -22,6 +23,8 @@ export type QuotedCartLine = {
   lineId?: string;
   productId: string;
   productName?: string;
+  productSlug?: string;
+  imageUrl?: string;
   type?: "DESIGNER_DRESS" | "CUSTOM_DRESS";
   variantId?: string | null;
   size?: "XS" | "S" | "M";
@@ -59,7 +62,7 @@ export function createCartQuoteVersion(input: {
 export async function quoteCartLines(
   input: unknown,
   clock: Clock = systemClock,
-  options: { checkCombinedVariantQuantity?: boolean } = {},
+  options: { checkCombinedVariantQuantity?: boolean; includeDisplayDetails?: boolean } = {},
 ) {
   const parsed = z.array(cartLineSchema).max(100).safeParse(input);
   if (!parsed.success) throw new RangeError("Cart lines contain invalid product identifiers or quantities.");
@@ -71,21 +74,29 @@ export async function quoteCartLines(
   const productIds = [...new Set(parsed.data.map((line) => line.productId))];
   const products = await db.product.findMany({
     where: { id: { in: productIds } },
-    include: { category: true, variants: true },
+    include: { category: true, variants: true, images: { orderBy: { position: "asc" }, take: options.includeDisplayDetails ? 1 : 0 } },
   });
   const productById = new Map(products.map((product) => [product.id, product]));
 
   const lines: QuotedCartLine[] = parsed.data.map((line) => {
+    const product = productById.get(line.productId);
+    const visibleProduct = product?.status === "ACTIVE" && product.category.visible ? product : undefined;
+    const details = options.includeDisplayDetails && visibleProduct ? {
+      productName: visibleProduct.name,
+      productSlug: visibleProduct.slug,
+      type: visibleProduct.type,
+      imageUrl: visibleProduct.images[0] ? getPublicImageUrl(visibleProduct.images[0]) : undefined,
+    } : {};
     const unavailable = (message: string): QuotedCartLine => ({
       lineId: line.lineId,
       productId: line.productId,
       variantId: line.variantId,
       quantity: line.quantity,
       acceptedUnitPaise: line.acceptedUnitPaise,
+      ...details,
       state: "UNAVAILABLE",
       message,
     });
-    const product = productById.get(line.productId);
     if (!product || product.status !== "ACTIVE" || !product.category.visible) {
       return unavailable("This dress is no longer available. Remove it from your cart.");
     }
@@ -117,6 +128,7 @@ export async function quoteCartLines(
       const changed = Boolean(line.acceptedQuoteVersion && line.acceptedQuoteVersion !== version)
         || (line.acceptedUnitPaise !== undefined && line.acceptedUnitPaise !== null && line.acceptedUnitPaise !== unitPricePaise);
       return {
+        ...details,
         lineId: line.lineId,
         productId: product.id,
         productName: product.name,
@@ -148,6 +160,7 @@ export async function quoteCartLines(
         ? (error as { fieldErrors: Record<string, string> }).fieldErrors
         : undefined;
       return {
+        ...details,
         lineId: line.lineId,
         productId: product.id,
         productName: product.name,
@@ -175,6 +188,7 @@ export async function quoteCartLines(
     const changed = Boolean(line.acceptedQuoteVersion && line.acceptedQuoteVersion !== version)
       || (line.acceptedUnitPaise !== undefined && line.acceptedUnitPaise !== null && line.acceptedUnitPaise !== unitPricePaise);
     return {
+      ...details,
       lineId: line.lineId,
       productId: product.id,
       productName: product.name,

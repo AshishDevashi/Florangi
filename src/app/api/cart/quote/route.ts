@@ -4,7 +4,7 @@ import { quoteCartLines } from "@/server/services/cart";
 
 export async function POST(request: Request) {
   try {
-    return NextResponse.json(await quoteCartLines(await request.json()));
+    return NextResponse.json(await quoteCartLines(await request.json(), undefined, { includeDisplayDetails: true }));
   } catch (error) {
     return apiError(error);
   }

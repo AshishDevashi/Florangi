@@ -26,7 +26,7 @@ The homepage service returns up to 48 active products in visible categories, wit
 
 The Tailwind Turbopack loader applies only to `globals.css`; CSS Modules use native Next compilation to retain their scoped class exports.
 
-The storefront navigation links to Home, Collection, In the spotlight and Appointment. Document scrolling is smooth unless reduced motion is requested.
+The storefront navigation links to Home, Collection, In the spotlight, About us and Appointment. Document scrolling is smooth unless reduced motion is requested.
 
 ## Collections
 
@@ -43,6 +43,18 @@ Custom dresses retain the required measurement workflow, optional fit notes, fee
 ## Contact page
 
 The contact page provides an editable message form preview with sending disabled; its entries are not submitted or saved. The separate WhatsApp link opens the owner-provided public chat number without sending the form contents.
+
+## About page
+
+The About page introduces designer and owner Sadikshya Gautam, presents Florangi's feminine point of view and displays the owner-supplied portrait from Cloudinary without cropping the artwork. Both desktop and mobile navigation link to the page.
+
+## Shopping bag
+
+The bag presents server-quoted product images, size or measurement details, quantity controls and a responsive order summary. Unavailable lines remain removable; reducing an excessive quantity refreshes the quote, and changed prices must be accepted before checkout. Totals exclude blocked lines. The empty and error states provide a path back to shopping or retrying without changing checkout rules.
+
+## Checkout
+
+Checkout pairs grouped contact, delivery and payment fields with an image-led order summary. The summary appears before the form on mobile and beside it on desktop. Payment changes refresh server totals; while totals are unavailable, checkout is disabled and a retry preserves entered details. Unavailable or changed bag items must still be resolved in the bag before checkout.
 
 ## Buttons
 
