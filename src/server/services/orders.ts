@@ -318,7 +318,6 @@ export async function createOrderForGuest(input: unknown, clock: Clock = systemC
           totalPaise: total.totalPaise,
           addressSnapshot,
           settingsSnapshot: { ...settings.snapshot, replacementWindowHours: settings.replacementWindowHours },
-          paymentDeadline: payload.paymentMethod === "ONLINE" ? new Date(now.getTime() + 30 * 60 * 1000) : null,
           idempotencyKey: payload.idempotencyKey,
           idempotencyPayloadHash: payloadHash,
           lines: {

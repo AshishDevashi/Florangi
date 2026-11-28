@@ -46,22 +46,61 @@ export async function enqueueCodConfirmation(
   });
 }
 
+export async function refreshCodConfirmationPayload(
+  transaction: Prisma.TransactionClient,
+  payload: Record<string, unknown>,
+  now: Date,
+): Promise<Record<string, unknown>> {
+  if (typeof payload.orderId !== "string" || typeof payload.url !== "string") {
+    throw new Error("Confirmation email is missing its order reference or link.");
+  }
+  const url = new URL(payload.url);
+  const parameters = new URLSearchParams(url.hash.slice(1));
+  const token = parameters.get("token");
+  if (!token || !parameters.get("access")) throw new Error("Confirmation email link is incomplete.");
+  const secret = getEnvironment().SESSION_SECRET;
+  const parsed = parseCodConfirmationToken(token, secret, new Date(0));
+  if (!parsed || parsed.orderId !== payload.orderId) throw new Error("Confirmation email token is invalid.");
+  if (parsed.expiresAt.getTime() > now.getTime() + 24 * 60 * 60 * 1000) return payload;
+
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const replacement = createCodConfirmationToken(payload.orderId, expiresAt, secret);
+  const replacementToken = parseCodConfirmationToken(replacement, secret, now);
+  if (!replacementToken) throw new Error("Confirmation token could not be created.");
+  await transaction.orderConfirmationToken.create({
+    data: { orderId: payload.orderId, tokenHash: replacementToken.tokenHash, expiresAt },
+  });
+  parameters.set("token", replacement);
+  url.hash = parameters.toString();
+  return { ...payload, url: url.toString() };
+}
+
 export async function enqueueCodConfirmationReminders(clock: Clock = systemClock) {
   const now = clock.now();
   const dueBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const candidates = await db.order.findMany({
-    where: {
-      paymentMethod: "COD",
-      paymentStatus: "COD_PENDING",
-      confirmedAt: null,
-      fulfillmentStatus: { in: ["PENDING_APPROVAL", "APPROVED"] },
-      createdAt: { lte: dueBefore },
-      lines: { some: { productType: "CUSTOM_DRESS" } },
-    },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-    take: 100,
-  });
+  const candidates = await db.$queryRaw<Array<{ id: string }>>`
+    SELECT o."id"
+    FROM "Order" o
+    WHERE o."paymentMethod" = 'COD'
+      AND o."paymentStatus" = 'COD_PENDING'
+      AND o."confirmedAt" IS NULL
+      AND o."fulfillmentStatus" IN ('PENDING_APPROVAL', 'APPROVED')
+      AND EXISTS (
+        SELECT 1 FROM "OrderLine" l WHERE l."orderId" = o."id" AND l."productType" = 'CUSTOM_DRESS'
+      )
+      AND EXISTS (
+        SELECT 1 FROM "EmailJob" e
+        WHERE e."eventKey" = 'cod-confirmation-initial:' || o."id"
+          AND e."template" = 'cod-confirmation' AND e."status" = 'SENT' AND e."sentAt" <= ${dueBefore}
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM "EmailJob" e
+        WHERE e."eventKey" = 'cod-confirmation-reminder:' || o."id"
+          AND e."template" = 'cod-confirmation-reminder'
+      )
+    ORDER BY o."createdAt" ASC, o."id" ASC
+    LIMIT 100
+  `;
   let queued = 0;
   for (const candidate of candidates) {
     const didQueue = await db.$transaction(async (transaction) => {
@@ -76,9 +115,18 @@ export async function enqueueCodConfirmationReminders(clock: Clock = systemClock
         order.paymentStatus !== "COD_PENDING" ||
         order.confirmedAt ||
         !["PENDING_APPROVAL", "APPROVED"].includes(order.fulfillmentStatus) ||
-        order.createdAt > dueBefore ||
         !order.lines.some((line) => line.productType === "CUSTOM_DRESS")
       ) return false;
+      const initial = await transaction.emailJob.findFirst({
+        where: {
+          eventKey: `cod-confirmation-initial:${order.id}`,
+          template: "cod-confirmation",
+          status: "SENT",
+          sentAt: { lte: dueBefore },
+        },
+        select: { id: true },
+      });
+      if (!initial) return false;
       const before = await transaction.emailJob.count({
         where: { eventKey: `cod-confirmation-reminder:${order.id}`, template: "cod-confirmation-reminder", recipient: order.email.toLowerCase() },
       });

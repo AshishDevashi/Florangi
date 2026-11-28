@@ -25,7 +25,7 @@ export function CampaignCard({ category, eyebrow, imageIndex = 1, wide = false }
         src={image ?? "/images/demo-dress.svg"}
         alt={`${name} dress collection`}
         fill
-        sizes={wide ? "100vw" : "(max-width: 600px) 100vw, 50vw"}
+        sizes={wide ? "(max-width: 700px) 100vw, 60vw" : "(max-width: 700px) 100vw, 50vw"}
         className={styles.coverImage}
       />
       <div className={styles.campaignCaption}>

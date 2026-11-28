@@ -85,18 +85,18 @@ export function HeroSlideshow({ image, companionImage, name, href, slides }: {
     >
       <div className={`${styles.heroImages} ${companionImage ? "" : styles.singlePhoto}`}>
         <div className={styles.heroPhoto}>
-          <StoreImage src={image} alt={`${name} — Florangi occasionwear`} fill loading="eager" sizes={companionImage ? "50vw" : "100vw"} className={styles.coverImage} />
+          <StoreImage src={image} alt={`${name} — Florangi occasionwear`} fill loading="eager" sizes={companionImage ? "(max-width: 700px) 1px, 50vw" : "(max-width: 700px) 1px, 100vw"} className={styles.coverImage} />
         </div>
         {companionImage && (
           <div className={styles.heroCompanion}>
-            <StoreImage src={companionImage} alt="" fill loading="eager" sizes="50vw" className={styles.coverImage} />
+            <StoreImage src={companionImage} alt="" fill loading="eager" sizes="(max-width: 700px) 1px, 50vw" className={styles.coverImage} />
           </div>
         )}
       </div>
       <div className={styles.heroMobileImages}>
         {slides.map((item, index) => (
           <div className={`${styles.heroMobileSlide} ${active === index ? styles.heroMobileSlideActive : ""}`} key={item.href}>
-            <StoreImage src={item.image} alt="" fill loading={index === 0 ? "eager" : "lazy"} sizes="100vw" className={styles.coverImage} />
+            <StoreImage src={item.image} alt="" fill loading={index === 0 ? "eager" : "lazy"} sizes="(max-width: 700px) 100vw, 1px" className={styles.coverImage} />
           </div>
         ))}
       </div>

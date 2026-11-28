@@ -12,8 +12,8 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - `src/components/`: UI grouped by feature (`admin`, `cart`, `catalog`, `checkout`, `orders`, `policies`).
 - `src/server/domain/`: framework-independent business rules (money/paise, pricing, measurements, order state, fulfillment, COD confirmation, replacement window, clock).
 - `src/server/services/`: persistence and workflow orchestration (catalog, cart quotes, orders, admin orders, replacements, settings, audit, email, tracking, COD).
-- `src/server/{auth,payments,email,storage,http}/`: admin and guest-order access control; payment provider/reconciliation/refunds/expiry; encrypted outbox/provider/worker; local and Cloudinary storage; API errors.
-- `src/server/db.ts`, `env.ts`, `worker.ts`: Prisma client, validated environment, background processing.
+- `src/server/{auth,payments,email,storage,http}/`: admin and guest-order access control; payment provider/reconciliation/refunds; encrypted outbox/provider/processing; local and Cloudinary storage; API errors.
+- `src/server/db.ts`, `env.ts`: Prisma client and validated environment.
 - `prisma/schema.prisma`, `prisma/migrations/`: data model and immutable deployed migration history; `prisma/seed.ts` seeds admin and development fixtures.
 - `docs/`: architecture, order state, owner decisions, recovery, backup/restore and storage migration procedures.
 - `docs/design-system.md`: approved Romantic Luxury palette and shared semantic color usage for storefront, admin, checkout and email.
@@ -25,9 +25,9 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - Customers shop and check out as guests; no customer accounts or customer sessions exist. First name, last name, phone number, email and delivery address are stored directly on each order. `/track-order` is deliberately public and returns limited fields; private order actions require a secure per-order access token exchanged for an order-scoped cookie. Admin login is separate and admin-only.
 - Server recalculates catalog, stock, measurements and shipping quotes. Browser values are not authoritative. Currency amounts are integer INR paise. Order lines, contact/address, measurement and settings snapshots preserve historical values.
 - Checkout reserves designer-dress (DD) stock transactionally; maintain `reserved <= onHand`. Release/allocation must follow normal audited service workflows, never manual status or counter edits. Order creation is idempotent and order numbers use a database counter.
-- Fulfillment and payment are separate state machines. Online capture is accepted only after provider verification of order ownership, INR amount and captured status. Expiry/cancellation followed by late capture means `REFUND_REQUIRED`, without re-reserving stock. Mark refunds complete only after provider verification. COD collection is explicitly recorded after delivery.
+- Fulfillment and payment are separate state machines. Online capture is accepted only after provider verification of order ownership, INR amount and captured status. Cancellation followed by late capture means `REFUND_REQUIRED`, without re-reserving stock. Unpaid orders are cancelled manually. Mark refunds complete only after provider verification. COD collection is explicitly recorded after delivery.
 - Custom-dress (CD) production has a 12-hour freeze after approval plus confirmation requirements; replacement requests use the order’s snapshotted 96-hour window. Consult domain rules and `docs/order-state.md` before changing transitions.
-- Email jobs are deduplicated, encrypted at rest, retried/deferred, and processed by `npm run worker` (or protected cron tick). Storage rows hold provider/key references; local is the default adapter. Public preview images use Cloudinary and account delivery has been verified; authenticated replacement-photo delivery still needs credentialed staging validation.
+- Email jobs are deduplicated, encrypted at rest, retried/deferred, and processed by the protected daily Vercel Cron tick. Storage rows hold provider/key references; local is the default adapter. Public preview images use Cloudinary and account delivery has been verified; authenticated replacement-photo delivery still needs credentialed staging validation.
 - Demo catalog, seeded settings/measurement ranges and policy values are development defaults, not launch approvals. Production readiness still requires owner approvals and provider/backup/recovery exercises; see `docs/open-decisions.md` and `README.md`.
 
 ## Configuration and commands
@@ -37,7 +37,7 @@ Florangi is a mobile-first storefront and owner-operated admin for designer and 
 - `npm run dev`, `npm run build`, `npm run start`
 - `npm run typecheck`, `npm run lint`
 - `npm run db:generate`, `npm run db:validate`, `npm run db:migrate`, `npm run db:deploy`, `npm run db:seed`
-- `npm run worker` runs background expiry/email processing. Docker Compose exposes local Postgres on host port 5433.
+- Vercel Cron processes emails daily; `/dev` can run email jobs locally. Docker Compose exposes local Postgres on host port 5433.
 
 ## Change guidance
 

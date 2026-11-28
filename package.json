@@ -15,7 +15,6 @@
     "db:seed": "node --env-file=.env --import tsx prisma/seed.ts",
     "catalog:preview": "node --conditions=react-server --env-file=.env --import tsx scripts/import-preview-catalog.ts",
     "storage:migrate-preview": "node --conditions=react-server --env-file=.env --import tsx scripts/migrate-preview-images-to-cloudinary.ts",
-    "worker": "node --conditions=react-server --env-file=.env --import tsx src/server/worker.ts",
     "storage:migrate-cloudinary": "node --conditions=react-server --env-file=.env --import tsx scripts/migrate-storage-to-cloudinary.ts"
   },
   "dependencies": {
@@ -24,6 +23,7 @@
     "cloudinary": "^2.11.0",
     "lucide-react": "^1.67.0",
     "next": "16.4.6",
+    "nextjs-toploader": "^3.9.17",
     "razorpay": "^2.9.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",

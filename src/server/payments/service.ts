@@ -357,7 +357,7 @@ export async function recordFailedPayment(providerOrderId: string, paymentId: st
         action: "PAYMENT_ATTEMPT_FAILED",
         fromState: order.paymentStatus,
         toState: failedOrder.paymentStatus,
-        note: "The latest online payment attempt failed. The order remains retryable until its payment deadline.",
+        note: "The latest online payment attempt failed. The order remains retryable while awaiting payment.",
       },
     });
     return { order: failedOrder, ignored: false };

@@ -88,6 +88,21 @@
   }
 }
 
+#nprogress .bar {
+  box-shadow: 0 2px 0 var(--ivory);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #nprogress {
+    transition: none !important;
+  }
+
+  #nprogress .bar {
+    transform: translate3d(-70%, 0, 0) !important;
+    transition: none !important;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

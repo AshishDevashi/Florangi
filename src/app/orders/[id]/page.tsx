@@ -42,7 +42,7 @@ export default async function CustomerOrderDetailPage({ params }: { params: Prom
         <h1 className="mt-2 font-serif text-4xl">{order.orderNumber}</h1>
         <p className="mt-2 text-sm text-muted">Placed {formatIndiaDateTime(order.createdAt)} · {order.fulfillmentStatus.replaceAll("_", " ")}</p>
         <p className="mt-2 text-sm text-muted">Payment: {order.paymentStatus.replaceAll("_", " ")} · {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online"}</p>
-        {order.fulfillmentStatus === "PENDING_PAYMENT" && <p className="mt-4 border-l-2 border-warning-border bg-surface px-4 py-3 text-sm">Payment pending. Complete payment before the 30-minute deadline.</p>}
+        {order.fulfillmentStatus === "PENDING_PAYMENT" && <p className="mt-4 border-l-2 border-warning-border bg-surface px-4 py-3 text-sm">Payment is pending. Your order remains reserved until it is paid or cancelled.</p>}
         {order.fulfillmentStatus === "PENDING_PAYMENT" && <PaymentAction orderId={order.id} mode={environment.PAYMENT_DRIVER} />}
         {order.fulfillmentStatus === "PENDING_PAYMENT" && <CancelOrderButton orderId={order.id} />}
         {order.paymentStatus === "REFUND_REQUIRED" && <p className="mt-4 text-sm">Refund in progress.</p>}

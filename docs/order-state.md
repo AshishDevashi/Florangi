@@ -7,7 +7,7 @@ stateDiagram-v2
   [*] --> PENDING_PAYMENT: Online checkout
   [*] --> PENDING_APPROVAL: COD checkout
   PENDING_PAYMENT --> PENDING_APPROVAL: Verified captured payment
-  PENDING_PAYMENT --> CANCELLED: 30-minute expiry / customer cancel / admin cancel
+  PENDING_PAYMENT --> CANCELLED: Customer cancel / admin cancel
   PENDING_APPROVAL --> APPROVED: Admin approve
   PENDING_APPROVAL --> REJECTED: Admin reject
   PENDING_APPROVAL --> CANCELLED: Admin cancel

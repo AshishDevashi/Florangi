@@ -32,7 +32,7 @@ Cart quotes re-read active catalog, stock, measurement ranges and shipping setti
 
 ## Phase 5 and 6 status
 
-Payment-provider order creation reuses the saved provider order, and browser callbacks and signed webhooks use the same capture reconciliation path. Amount, currency, provider order ownership and captured status are checked before payment is accepted. Webhook events are persisted/deduplicated with sensitive fields omitted; failed attempts do not downgrade a paid order. Late capture after expiry/cancellation sets `REFUND_REQUIRED` without re-reserving stock. Full refunds use provider idempotency and are marked complete only after provider verification. Unpaid expiry and email processing run in the database worker; a secret-protected cron tick is also available.
+Payment-provider order creation reuses the saved provider order, and browser callbacks and signed webhooks use the same capture reconciliation path. Amount, currency, provider order ownership and captured status are checked before payment is accepted. Webhook events are persisted/deduplicated with sensitive fields omitted; failed attempts do not downgrade a paid order. Late capture after cancellation sets `REFUND_REQUIRED` without re-reserving stock. Full refunds use provider idempotency and are marked complete only after provider verification. Unpaid orders require manual cancellation; a secret-protected Vercel Cron tick processes email daily.
 
 Admin fulfillment includes approval/rejection/cancellation, the 12-hour custom-production freeze, COD phone confirmation evidence, per-line QC/readiness, manual shipment, delivered-time checks, explicit COD collection, private notes, audit/timeline, and transactional status emails.
 

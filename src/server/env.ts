@@ -25,7 +25,7 @@ const environmentSchema = z
     EMAIL_DRIVER: z.enum(["dev", "resend", "brevo"]).default("dev"),
     EMAIL_FROM: senderSchema.default("hello@example.test"),
     EMAIL_REPLY_TO: z.string().email().default("support@example.test"),
-    EMAIL_DAILY_QUOTA: z.coerce.number().int().positive().default(300),
+    EMAIL_DAILY_QUOTA: z.coerce.number().int().positive().default(100),
     RESEND_API_KEY: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     ADMIN_ALERT_EMAIL: optionalEmailSchema,

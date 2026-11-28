@@ -54,9 +54,9 @@ export function DevTools() {
     setError("");
     try {
       const response = await fetch("/api/dev/run-jobs", { method: "POST" });
-      const result = await response.json() as { expiredOrders?: number; emailJobsProcessed?: number; error?: string };
+      const result = await response.json() as { emailJobsProcessed?: number; error?: string };
       if (!response.ok) throw new Error(result.error ?? "Jobs could not be run.");
-      setMessage(`Expired ${result.expiredOrders} order(s); processed ${result.emailJobsProcessed} email job(s).`);
+      setMessage(`Processed ${result.emailJobsProcessed} email job(s).`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Jobs could not be run.");
     } finally {
@@ -75,7 +75,7 @@ export function DevTools() {
           <button className="min-h-11 border border-border-strong px-4 text-sm font-semibold disabled:opacity-50" disabled={busy} type="submit">Set offset</button>
           <button className="min-h-11 border border-border-strong px-4 text-sm disabled:opacity-50" disabled={busy} onClick={() => setOffsetHours("0")} type="button">Reset</button>
         </form>
-        <p className="mt-3 text-xs text-muted">The offset is held in this web process and resets on restart. The worker process uses its own clock.</p>
+        <p className="mt-3 text-xs text-muted">The offset is held in this web process and resets on restart. Vercel Cron uses its own clock.</p>
       </section>
       <section className="border-t border-border pt-5">
         <h2 className="font-serif text-2xl">Scheduled jobs</h2>

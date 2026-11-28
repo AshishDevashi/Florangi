@@ -28,6 +28,18 @@ The Tailwind Turbopack loader applies only to `globals.css`; CSS Modules use nat
 
 The storefront navigation links to Home, Collection, In the spotlight, About us and Appointment. Above it, a non-interactive announcement bar cycles through the effective free-delivery threshold, online order tracking and WhatsApp support. A zero threshold means free delivery on all orders; a missing or invalid threshold is logged and omitted. Reduced-motion preferences show all announcements without animation. Document scrolling is smooth unless reduced motion is requested. The shared footer features a typographic Made for India and Crafted in Mumbai signature above centered copyright and legal links.
 
+Page navigation uses a thin Plum progress bar with an Ivory edge for contrast across the storefront and admin. It remains static for reduced-motion preferences and announces loading to assistive technology; action buttons retain their own pending states.
+
+The not-found page uses the shared palette and fonts, with a decorative 404 and direct links home, to collections and to contact. It does not depend on catalog data.
+
+### Image and scroll warnings
+
+Next.js checks images in development after they load. A `fill` image needs an immediate parent with `position: relative`, `absolute` or `fixed`, and a nonzero size. Its `sizes` must describe the rendered width at each layout breakpoint, rather than always using `100vw` for a narrower image. The hero keeps both responsive image layers positioned and laid out while hiding the inactive layer with `visibility`; its breakpoint-specific `sizes` request a small image for that inactive layer. Hidden layers may still load images, and the available minimum image size depends on Next's configuration.
+
+The root `html` has `data-scroll-behavior="smooth"` because the global stylesheet enables smooth document scrolling when reduced motion is not requested. This lets Next temporarily disable smooth scrolling during route transitions while preserving smooth anchor scrolling. Keep the attribute if the global smooth-scroll rule remains.
+
+These are development diagnostics, not necessarily different failures each time: multiple image instances can each emit warnings, and reloads, navigation or hot updates can trigger the checks again. If a warning returns, inspect the reported image's actual parent and rendered width at the affected viewport rather than suppressing it.
+
 ## Collections
 
 The homepage features the first three visible collections in the same centered overlay cards used by the collections index, with a link to view all collections. Both grids show three cards per row on desktop and one on mobile. The collections index shows visible categories with active dresses. Individual collection pages show the collection name without a category-image banner, retain direct access to visible empty categories and list all active dresses from that collection. The first four product images load eagerly on collection pages. Shared storefront product cards show available and sold-out sizes as distinct bordered labels using current stock and price data. Desktop and mobile navigation link to the index.
@@ -50,7 +62,7 @@ The About page introduces designer and owner Sadikshya Gautam, presents Florangi
 
 ## Shopping bag
 
-The bag presents server-quoted product images, size or measurement details, quantity controls and a responsive order summary. Unavailable lines remain removable; reducing an excessive quantity refreshes the quote, and changed prices must be accepted before checkout. Totals exclude blocked lines. The empty and error states provide a path back to shopping or retrying without changing checkout rules.
+The bag presents server-quoted product images, size or measurement details, quantity controls and a responsive order summary. A responsive skeleton appears while the bag is initially refreshed or retried; its status is announced and animation respects reduced motion. Unavailable lines remain removable; reducing an excessive quantity refreshes the quote, and changed prices must be accepted before checkout. Totals exclude blocked lines. The empty and error states provide a path back to shopping or retrying without changing checkout rules.
 
 ## Order tracking
 
@@ -58,7 +70,9 @@ The public tracking page uses the storefront navigation and footer, with an orde
 
 ## Checkout
 
-Checkout pairs grouped contact, delivery and payment fields with an image-led order summary. The summary appears before the form on mobile and beside it on desktop. Payment changes refresh server totals; while totals are unavailable, checkout is disabled and a retry preserves entered details. Unavailable or changed bag items must still be resolved in the bag before checkout.
+Checkout pairs grouped contact, delivery and payment fields with an image-led order summary. The summary appears before the form on mobile and beside it on desktop. A responsive skeleton represents the checkout while the bag and initial totals load; payment changes show skeleton amounts while totals refresh. Loading is announced to assistive technology, and skeleton animation respects reduced motion. While totals are unavailable, checkout is disabled and a retry preserves entered details. Unavailable or changed bag items must still be resolved in the bag before checkout.
+
+After form validation, the confirmation dialog offers one control that can be swiped, tapped or activated by keyboard. Its espresso-to-plum gradient fills the track only as the handle moves. Confirming COD creates the order; confirming online creates the order and opens the payment provider. A progress message remains visible during payment verification and navigation. Successful checkout opens tracking with the order number; a pending mock payment can be managed from secure order details. Failed, closed or unverified online payments retain a link to the saved order and instruct customers to check its status before trying again. Payment success is never assumed before server verification.
 
 ## Buttons
 
@@ -102,7 +116,7 @@ Cards display the effective version/date and per-record development-default stat
 
 The overview is a server-rendered operational snapshot with a manual refresh control. It shows exact queue counts, up to five oldest approval requests, and up to five sizes with the lowest availability. Inventory aggregates and previews are computed in PostgreSQL and exclude archived products, matching the existing overview scope. Order links open the appropriate filtered queue or individual order without performing mutations.
 
-Email counts distinguish queued, deferred, processing and failed jobs. The configured quota uses the email worker's UTC day, with its reset displayed in IST. The progress bar is capped at its maximum while actual sent counts remain visible if the quota is exceeded. Warnings indicate known failures or quota usage and do not imply that other delivery conditions are healthy. No historical trends or revenue metrics are inferred from snapshot counts.
+Email counts distinguish queued, deferred, processing and failed jobs. The configured quota uses a UTC day, with its reset displayed in IST. The progress bar is capped at its maximum while actual sent counts remain visible if the quota is exceeded. Warnings indicate known failures or quota usage and do not imply that other delivery conditions are healthy. No historical trends or revenue metrics are inferred from snapshot counts.
 
 ## Typography
 

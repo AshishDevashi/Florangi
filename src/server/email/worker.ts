@@ -3,12 +3,12 @@ import "server-only";
 import { db } from "@/server/db";
 import { getEnvironment } from "@/server/env";
 import { systemClock, type Clock } from "@/server/domain/clock";
-import { decryptEmailPayload } from "@/server/email/outbox";
+import { decryptEmailPayload, encryptPayload } from "@/server/email/outbox";
 import { getEmailProvider, renderEmailPayload } from "@/server/email/provider";
-import { enqueueCodConfirmationReminders } from "@/server/services/cod-confirmation";
+import { enqueueCodConfirmationReminders, refreshCodConfirmationPayload } from "@/server/services/cod-confirmation";
 
 const MAX_ATTEMPTS = 5;
-const MAX_BATCH_SIZE = 25;
+const MAX_BATCH_SIZE = 100;
 const STALE_PROCESSING_MS = 5 * 60 * 1000;
 let lastQuotaWarningDate = "";
 
@@ -90,9 +90,19 @@ export async function processEmailJobs(clock: Clock = systemClock) {
     processed += 1;
 
     try {
+      let payload = decryptEmailPayload(job.payload);
+      if (job.template === "cod-confirmation" || job.template === "cod-confirmation-reminder") {
+        payload = await db.$transaction(async (transaction) => {
+          const refreshed = await refreshCodConfirmationPayload(transaction, payload, clock.now());
+          if (refreshed !== payload) {
+            await transaction.emailJob.update({ where: { id: job.id }, data: { payload: encryptPayload(refreshed) } });
+          }
+          return refreshed;
+        });
+      }
       if (environment.EMAIL_DRIVER !== "dev") {
         const provider = getEmailProvider();
-        await provider.send({ to: job.recipient, email: renderEmailPayload(decryptEmailPayload(job.payload)) });
+        await provider.send({ to: job.recipient, email: renderEmailPayload(payload) });
       } else {
         console.info("email.outbox_ready", { template: job.template });
       }

@@ -19,14 +19,14 @@ All recovery actions must preserve the database as the source of truth. Do not e
 
 ## Email backlog
 
-1. Check worker health and database connectivity, then run `npm run worker` or the secret-protected `/api/cron/tick` scheduler.
-2. Inspect queued/deferred/failed jobs, attempt counts, provider quota and sender verification. `EMAIL_DAILY_QUOTA` defers excess jobs to the next UTC day.
-3. Retry only `FAILED` jobs from the admin order page after correcting provider configuration. Event/template/recipient uniqueness prevents duplicate sends.
+1. Check Vercel Cron logs and database connectivity, then trigger the secret-protected `GET /api/cron/tick` if needed. Vercel does not retry failed cron invocations automatically.
+2. Inspect queued/deferred/failed jobs, attempt counts, provider daily and monthly quotas, external sends and sender verification. `EMAIL_DAILY_QUOTA` defers excess jobs to the next UTC day. Each run processes at most 100 jobs.
+3. Retry only `FAILED` jobs from the admin order page after correcting provider configuration. Event/template/recipient uniqueness prevents duplicate jobs, but an ambiguous provider response can still lead to duplicate delivery on retry.
 4. Use `/dev/emails` only outside production; it shows encrypted development outbox messages and one-time links.
 
 ## Reservation mismatch
 
 1. Compare variant `on_hand`/`reserved` with open order lines and stock movements.
-2. Check whether a reject, cancel, expiry, shipment or replacement allocation transaction committed; each action should have one movement record.
+2. Check whether a reject, cancel, historical expiry, shipment or replacement allocation transaction committed; each action should have one movement record.
 3. Do not decrement `reserved` manually. Correct through a reviewed, audited admin inventory adjustment or an owner-approved repair migration.
 4. Alert the owner and preserve order/audit identifiers for investigation.

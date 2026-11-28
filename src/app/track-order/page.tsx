@@ -106,6 +106,8 @@ export default async function TrackOrderPage({ searchParams }: {
                 <div className="mt-6 bg-background p-4 text-sm">
                   <p className="text-xs text-muted">Payment</p>
                   <p className="mt-1 font-medium">{order.paymentStatus.replaceAll("_", " ")} · {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online"}</p>
+                  <p className="mt-2 leading-6 text-muted">{order.fulfillmentStatus === "PENDING_PAYMENT" ? "Check your payment status before retrying. You can manage payment in your secure order details." : "For private order details and available actions, use your secure order link."}</p>
+                  <Link className="mt-2 inline-flex min-h-11 items-center gap-2 font-semibold text-accent hover:underline" href={`/orders/${encodeURIComponent(order.id)}`}>Open secure order details <ArrowUpRight size={16} aria-hidden="true" /></Link>
                 </div>
               </section>
 

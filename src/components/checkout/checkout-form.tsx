@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { startTransition, useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Banknote, CreditCard, ShoppingBag } from "lucide-react";
 import { StoreImage } from "@/components/storefront/store-image";
 import { Button, buttonStyles } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { OrderConfirmDialog } from "@/components/checkout/order-confirm-dialog";
 import { formatPaise } from "@/server/domain/money";
 import { openRazorpayCheckout, type RazorpayClientOrder, type RazorpayPaymentResponse } from "@/components/checkout/payment-client";
 import type { QuotedCartLine as CartLine } from "@/server/services/cart";
@@ -36,6 +38,9 @@ type CheckoutQuote = {
   totalPaise: number;
   lines: CartLine[];
 };
+
+type SavedOrder = { id: string; orderNumber: string };
+type CheckoutPhase = "creating" | "opening" | "payment" | "verifying" | "redirecting";
 
 const addressFields = [
   { name: "line1", label: "Address line 1", autocomplete: "address-line1" },
@@ -87,6 +92,9 @@ export function CheckoutForm() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [phase, setPhase] = useState<CheckoutPhase | null>(null);
+  const [savedOrder, setSavedOrder] = useState<SavedOrder | null>(null);
 
   async function loadCart() {
     const localLines = readGuestCart();
@@ -168,12 +176,19 @@ export function CheckoutForm() {
     void refreshQuote(method);
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function requestConfirmation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!cart || !quote || busy || quoteLock.current || submitLock.current) return;
+    if (!cart || !quote || busy || quoteLock.current || submitLock.current || savedOrder) return;
+    setConfirmOpen(true);
+  }
+
+  async function submitOrder() {
+    if (!cart || !quote || busy || quoteLock.current || submitLock.current || savedOrder) return;
     submitLock.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
+    setConfirmOpen(false);
     setBusy(true);
+    setPhase("creating");
     setError("");
     const lines = quote.lines.map((line) => ({
       lineId: line.lineId,
@@ -206,58 +221,83 @@ export function CheckoutForm() {
           lines,
         }),
       });
-      const result = await response.json() as { order?: { id: string }; error?: string };
-      if (!response.ok || !result.order) throw new Error(result.error ?? "Your order could not be placed.");
+      const result = await response.json() as { order?: SavedOrder; error?: string };
+      if (!response.ok || !result.order?.id || !result.order.orderNumber) throw new Error(result.error ?? "Your order could not be placed.");
+      const order = result.order;
+      setSavedOrder(order);
+      const trackUrl = `/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}`;
       if (paymentMethod === "ONLINE") {
+        setPhase("opening");
         const paymentResponse = await fetch("/api/payments/order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: result.order.id }),
+          body: JSON.stringify({ orderId: order.id }),
         });
         const paymentOrder = await paymentResponse.json() as RazorpayClientOrder & { driver?: string; error?: string };
         if (!paymentResponse.ok) throw new Error(`${paymentOrder.error ?? "Payment could not be started."} Your order is saved; retry from order details.`);
         if (paymentOrder.driver === "mock") {
-          router.push(`/orders/${result.order.id}/confirmation`);
+          setPhase("redirecting");
+          router.replace(trackUrl);
           return;
         }
+        let verificationStarted = false;
+        let dismissed = false;
+        let paymentFailure = "";
         await openRazorpayCheckout(paymentOrder, {
           onSuccess: async (payment: RazorpayPaymentResponse) => {
-            const verified = await fetch("/api/payments/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payment),
-            });
-            const verification = await verified.json() as { error?: string };
-            if (!verified.ok) {
-              setError(verification.error ?? "Payment is not verified yet. Check your order status.");
+            if (verificationStarted) return;
+            verificationStarted = true;
+            submitLock.current = true;
+            setBusy(true);
+            setError("");
+            setPhase("verifying");
+            try {
+              const verified = await fetch("/api/payments/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payment),
+              });
+              const verification = await verified.json() as { error?: string };
+              if (!verified.ok) throw new Error(verification.error ?? "Payment could not be verified yet.");
+              localStorage.removeItem("florangi-cart-v1");
+              setPhase("redirecting");
+              router.replace(trackUrl);
+            } catch (caught) {
+              const detail = caught instanceof Error ? caught.message : "The verification request was interrupted.";
+              setError(`${detail} Your payment status is not confirmed. Check your order before attempting payment again.`);
               submitLock.current = false;
               setBusy(false);
-              return;
+              setPhase(null);
             }
-            localStorage.removeItem("florangi-cart-v1");
-            router.push(`/orders/${result.order!.id}/confirmation`);
           },
           onFailure: (message) => {
-            setError(message);
+            if (verificationStarted || dismissed) return;
+            paymentFailure = message;
+          },
+          onDismiss: () => {
+            if (verificationStarted || dismissed) return;
+            dismissed = true;
+            setError(`${paymentFailure ? `${paymentFailure} ` : "Payment was closed. "}Your order is saved; check its status before retrying payment.`);
             submitLock.current = false;
             setBusy(false);
+            setPhase(null);
           },
-          onDismiss: () => { submitLock.current = false; setBusy(false); },
         });
-        submitLock.current = false;
-        setBusy(false);
+        if (!verificationStarted && !dismissed) setPhase("payment");
         return;
       }
       localStorage.removeItem("florangi-cart-v1");
-      router.push(`/orders/${result.order.id}/confirmation`);
+      setPhase("redirecting");
+      router.replace(trackUrl);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "A network error interrupted checkout. Your details are still here; retry safely.");
       submitLock.current = false;
       setBusy(false);
+      setPhase(null);
     }
   }
 
-  if (loading) return <p className="border-t border-border py-12 text-sm text-muted" role="status">Preparing your checkout…</p>;
+  if (loading) return <CheckoutSkeleton />;
 
   if (!cart || cart.hasBlockingLines || cart.needsAcceptance) {
     return (
@@ -281,6 +321,7 @@ export function CheckoutForm() {
   const inputClass = "mt-2 block min-h-12 w-full rounded-md border border-border-strong bg-background px-3 text-sm text-foreground focus:border-accent disabled:opacity-60";
 
   return (
+    <>
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <aside aria-labelledby="checkout-summary" className="rounded-xl border border-border bg-surface p-6 sm:p-8 lg:order-2 lg:sticky lg:top-6">
         <div className="flex items-start justify-between gap-3">
@@ -301,17 +342,17 @@ export function CheckoutForm() {
                 <div className="min-w-0 flex-1">
                   <p className="break-words text-sm font-medium">{line.productName ?? "Dress"}</p>
                   <p className="mt-1 text-xs text-muted">{line.type === "CUSTOM_DRESS" ? "Made to measure" : line.size ? `Size ${line.size}` : "Selected size"} · Qty {line.quantity}</p>
-                  <p className="mt-2 text-sm font-semibold">{pricedLine?.lineTotalPaise === undefined ? "—" : formatPaise(pricedLine.lineTotalPaise)}</p>
+                  <p className="mt-2 text-sm font-semibold">{quoteLoading ? <Skeleton className="h-4 w-20" /> : pricedLine?.lineTotalPaise === undefined ? "—" : formatPaise(pricedLine.lineTotalPaise)}</p>
                 </div>
               </li>
             );
           })}
         </ul>
         <div className="space-y-4 border-t border-border pt-5 text-sm" aria-live="polite">
-          <SummaryRow label="Subtotal" value={quote?.subtotalPaise} />
-          <SummaryRow label="Shipping" value={quote?.shippingFeePaise} free />
-          <div className="flex justify-between gap-4 border-t border-border pt-5 text-base font-semibold"><span>Total</span><span>{quote ? formatPaise(quote.totalPaise) : "—"}</span></div>
-          {quoteLoading && <p className="text-xs text-muted" role="status">Updating totals…</p>}
+          <SummaryRow label="Subtotal" value={quote?.subtotalPaise} loading={quoteLoading} />
+          <SummaryRow label="Shipping" value={quote?.shippingFeePaise} loading={quoteLoading} free />
+          <div className="flex justify-between gap-4 border-t border-border pt-5 text-base font-semibold"><span>Total</span><span>{quoteLoading ? <Skeleton className="h-5 w-20" /> : quote ? formatPaise(quote.totalPaise) : "—"}</span></div>
+          {quoteLoading && <span className="sr-only" role="status">Updating totals…</span>}
         </div>
         {!quote && !quoteLoading && error && (
           <div className="mt-5 rounded-lg border border-danger-border bg-danger-bg p-4">
@@ -322,7 +363,7 @@ export function CheckoutForm() {
         <p className="mt-5 text-xs leading-5 text-muted">Prices and availability are checked again when you place your order.</p>
       </aside>
 
-      <form className="space-y-6 lg:order-1" onSubmit={submit}>
+      <form className="space-y-6 lg:order-1" onSubmit={requestConfirmation}>
         <fieldset className="rounded-xl border border-border bg-surface p-5 sm:p-8" disabled={busy}>
           <legend className="sr-only">Your contact details</legend>
           <h2 className="font-serif text-3xl">Your contact details</h2>
@@ -403,17 +444,81 @@ export function CheckoutForm() {
           </div>
         )}
         {error && quote && <p className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger" role="alert">{error}</p>}
+        {savedOrder && !busy && (
+          <div className="rounded-lg border border-border bg-surface p-4 text-sm">
+            <p>Your order {savedOrder.orderNumber} is saved.</p>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <Link className="font-semibold text-accent underline" href={`/orders/${encodeURIComponent(savedOrder.id)}`}>Open secure order details</Link>
+              <Link className="font-semibold text-accent underline" href={`/track-order?orderNumber=${encodeURIComponent(savedOrder.orderNumber)}`}>Track order</Link>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:underline" href="/cart"><ArrowLeft size={16} aria-hidden="true" /> Return to bag</Link>
-          <Button className="min-h-12 sm:min-w-64" variant="primary" disabled={busy || quoteLoading || !quote} type="submit">
+          <Button className="min-h-12 sm:min-w-64" variant="primary" disabled={busy || quoteLoading || !quote || Boolean(savedOrder)} type="submit">
             {busy ? "Placing order…" : paymentMethod === "COD" ? "Place Cash on Delivery order" : "Place order"} <ArrowRight size={16} aria-hidden="true" />
           </Button>
         </div>
       </form>
     </div>
+    <OrderConfirmDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={() => void submitOrder()} paymentMethod={paymentMethod} totalPaise={quote?.totalPaise ?? 0} />
+    {phase && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/60 p-5">
+        <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6 text-center shadow-2xl" role="status" aria-live="polite">
+          <span className="mx-auto block size-8 rounded-full border-2 border-border border-t-accent motion-safe:animate-spin" aria-hidden="true" />
+          <p className="mt-4 font-serif text-2xl">{phase === "verifying" ? "Verifying your payment" : phase === "redirecting" ? "Opening your order" : phase === "payment" ? "Complete your payment" : phase === "opening" ? "Opening secure payment" : "Placing your order"}</p>
+          <p className="mt-2 text-sm leading-6 text-muted">{phase === "verifying" ? "Please wait while we check the payment. Do not close this page." : phase === "payment" ? "Continue in the secure payment window." : "Please keep this page open."}</p>
+          {phase === "redirecting" && savedOrder && <Link className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline" href={`/track-order?orderNumber=${encodeURIComponent(savedOrder.orderNumber)}`}>Open tracking</Link>}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
-function SummaryRow({ label, value, free = false }: { label: string; value?: number; free?: boolean }) {
-  return <div className="flex justify-between gap-4"><span className="text-muted">{label}</span><span>{value === undefined ? "—" : free && value === 0 ? "Free" : formatPaise(value)}</span></div>;
+function CheckoutSkeleton() {
+  return (
+    <div role="status">
+      <span className="sr-only">Preparing your checkout…</span>
+      <div aria-hidden="true" className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
+        <div className="rounded-xl border border-border bg-surface p-6 sm:p-8 lg:order-2">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="mt-2 h-3 w-24" />
+          <div className="mt-4 flex gap-3 border-b border-border py-4">
+            <Skeleton className="aspect-[3/4] w-16 shrink-0" />
+            <div className="flex-1 space-y-3 pt-1">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          </div>
+          <div className="space-y-4 pt-5">
+            {[0, 1, 2].map((row) => <div className="flex justify-between" key={row}><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-16" /></div>)}
+          </div>
+        </div>
+        <div className="space-y-6 lg:order-1">
+          {[4, 6].map((fieldCount) => (
+            <div className="rounded-xl border border-border bg-surface p-5 sm:p-8" key={fieldCount}>
+              <Skeleton className="h-8 w-48 max-w-full" />
+              <Skeleton className="mt-3 h-4 w-3/4" />
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: fieldCount }, (_, index) => (
+                  <div key={index}><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-12 w-full" /></div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="rounded-xl border border-border bg-surface p-5 sm:p-8">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="mt-3 h-4 w-3/4" />
+            <div className="mt-6 space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, loading = false, free = false }: { label: string; value?: number; loading?: boolean; free?: boolean }) {
+  return <div className="flex justify-between gap-4"><span className="text-muted">{label}</span><span>{loading ? <Skeleton className="h-4 w-16" /> : value === undefined ? "—" : free && value === 0 ? "Free" : formatPaise(value)}</span></div>;
 }

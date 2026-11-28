@@ -74,6 +74,6 @@ export async function openRazorpayCheckout(
     modal: { ondismiss: handlers.onDismiss },
     theme: { color: "#694653" },
   });
-  checkout.on("payment.failed", (response) => handlers.onFailure(response.error?.description ?? "Payment failed. You can retry before the 30-minute deadline."));
+  checkout.on("payment.failed", (response) => handlers.onFailure(response.error?.description ?? "Payment failed. You can retry while the order is awaiting payment."));
   checkout.open();
 }

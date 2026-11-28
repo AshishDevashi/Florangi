@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { startTransition, useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { ArrowUpRight, Check, Ruler, ShoppingBag } from "lucide-react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";

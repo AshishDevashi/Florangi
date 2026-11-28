@@ -15,7 +15,7 @@ function getEncryptionKey(): Buffer {
   return createHash("sha256").update(getEnvironment().SESSION_SECRET).digest();
 }
 
-function encryptPayload(payload: Record<string, unknown>): Prisma.InputJsonObject {
+export function encryptPayload(payload: Record<string, unknown>): Prisma.InputJsonObject {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
   const ciphertext = Buffer.concat([

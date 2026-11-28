@@ -5,6 +5,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { StoreImage } from "@/components/storefront/store-image";
 import { Button, buttonStyles } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPaise } from "@/server/domain/money";
 import type { QuotedCartLine as CartLine } from "@/server/services/cart";
 
@@ -158,21 +159,21 @@ export function CartView() {
     }
   }
 
-  if (mode === "loading" || mode === "error") {
+  if (mode === "loading") return <CartSkeleton />;
+
+  if (mode === "error") {
     return (
       <div className="mt-8 border-t border-border py-12">
-        {mode === "loading" ? <p className="text-sm text-muted" role="status">Refreshing your bag…</p> : (
-          <div className="rounded-xl border border-danger-border bg-danger-bg p-6">
-            <p className="text-sm text-danger" role="alert">{error}</p>
-            <Button className="mt-4" onClick={() => {
-              setMode("loading");
-              void load().catch((caught: unknown) => {
-                setError(caught instanceof Error ? caught.message : "Your cart could not be loaded.");
-                setMode("error");
-              });
-            }}>Try again</Button>
-          </div>
-        )}
+        <div className="rounded-xl border border-danger-border bg-danger-bg p-6">
+          <p className="text-sm text-danger" role="alert">{error}</p>
+          <Button className="mt-4" onClick={() => {
+            setMode("loading");
+            void load().catch((caught: unknown) => {
+              setError(caught instanceof Error ? caught.message : "Your cart could not be loaded.");
+              setMode("error");
+            });
+          }}>Try again</Button>
+        </div>
       </div>
     );
   }
@@ -189,6 +190,41 @@ export function CartView() {
           <Link className={buttonStyles({ variant: "primary", className: "mt-7 min-h-12 px-7" })} href="/collections">Explore collections <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
       ) : quote && <CartSection quote={quote} busy={busy} onQuantity={updateQuantity} onRemove={removeLine} onClear={clearCart} onAcceptPrices={acceptCurrentPrices} />}
+    </div>
+  );
+}
+
+function CartSkeleton() {
+  return (
+    <div className="mt-8" role="status">
+      <span className="sr-only">Refreshing your bag…</span>
+      <div aria-hidden="true" className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
+        <div>
+          <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
+            <Skeleton className="h-7 w-32" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          {[0, 1].map((item) => (
+            <div className="flex gap-4 border-b border-border py-6 sm:gap-6" key={item}>
+              <Skeleton className="aspect-[3/4] w-24 shrink-0 sm:w-36" />
+              <div className="min-w-0 flex-1 space-y-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-3/4 max-w-56" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-11 w-32 max-w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-6 sm:p-8 lg:sticky lg:top-6">
+          <Skeleton className="h-8 w-40" />
+          <div className="mt-6 space-y-4">
+            {[0, 1, 2].map((row) => <div className="flex justify-between gap-4" key={row}><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-16" /></div>)}
+          </div>
+          <Skeleton className="mt-6 h-12 w-full" />
+        </div>
+      </div>
     </div>
   );
 }

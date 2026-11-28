@@ -39,7 +39,10 @@
 .heroCaption h1 { font-size: clamp(38px, 4.3vw, 65px); line-height: 1.1; font-weight: 400; letter-spacing: -.025em; margin-block: 10px 21px; text-shadow: 0 1px 14px var(--espresso); }
 .campaignButton { border-radius: 0; min-height: 46px; background: var(--ivory); color: var(--espresso); border-color: var(--ivory); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; gap: 25px; padding-inline: 25px; }
 .campaignButton:not(:disabled):hover { background: var(--plum); color: var(--ivory); border-color: var(--plum); }
-.heroMobileImages, .heroMobileText, .heroMobileAction, .heroSlideshowControls { display: none; }
+.heroMobileImages { position: absolute; inset: 0; visibility: hidden; }
+.heroMobileSlide { position: absolute; inset: 0; opacity: 0; transition: opacity .55s ease; }
+.heroMobileSlideActive { opacity: 1; }
+.heroMobileText, .heroMobileAction, .heroSlideshowControls { display: none; }
 
 /* Featured collections lead into the product edit. */
 .section { padding: 38px var(--page-gutter); scroll-margin-top: 125px; }
@@ -159,10 +162,9 @@
   .desktopNav { display: none; }
   .collectionsGrid { grid-template-columns: 1fr; gap: 16px; }
   .hero { height: calc(100svh - 88px); min-height: 470px; max-height: 680px; touch-action: pan-y; }
-  .heroImages, .heroDesktopText, .heroDesktopAction { display: none; }
-  .heroMobileImages { display: block; position: absolute; inset: 0; }
-  .heroMobileSlide { position: absolute; inset: 0; opacity: 0; transition: opacity .55s ease; }
-  .heroMobileSlideActive { opacity: 1; }
+  .heroImages { visibility: hidden; }
+  .heroDesktopText, .heroDesktopAction { display: none; }
+  .heroMobileImages { visibility: visible; }
   .heroMobileSlide .coverImage { object-position: center 30%; }
   .heroMobileText { display: inline; }
   .heroMobileAction { display: inline-flex; }

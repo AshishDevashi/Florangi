@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
 const headingFont = localFont({
@@ -26,8 +27,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+    <html lang="en" data-scroll-behavior="smooth" className={`${headingFont.variable} ${bodyFont.variable} h-full antialiased`}>
+      <body className="min-h-full">
+        <NextTopLoader
+          color="var(--accent)"
+          showSpinner={false}
+          shadow={false}
+          showForHashAnchor={false}
+          template='<div class="bar" role="bar" aria-hidden="true"></div><span class="sr-only" role="status">Loading page</span>'
+        />
+        {children}
+      </body>
     </html>
   );
 }
