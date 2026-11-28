@@ -10,4 +10,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project context
 
-Florangi is a Next.js 16.4 / React 19 storefront and owner-operated dress shop admin, using TypeScript, Prisma 6 and PostgreSQL. Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) for the compact architecture, source map, and business invariants before changing project code. Existing detailed architecture and operational notes are in `docs/`; the owner decisions in `docs/open-decisions.md` are not approved launch policy.
+Florangi is a Next.js 16.4 / React 19 storefront and owner-operated dress shop admin, using TypeScript, Prisma 6 and PostgreSQL. Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) for the compact architecture, source map, and business invariants before changing project code. Detailed architecture and operational notes are in [README.md](README.md); the owner decisions there are not approved launch policy.

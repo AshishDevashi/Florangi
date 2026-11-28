@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Florangi — Romantic Luxury. Keep integration colors in sync (see docs/design-system.md). */
+  /* Florangi — Romantic Luxury. Keep integration colors in sync (see README.md). */
   --ivory: #F5EEE5;
   --rose: #B77C80;
   --plum: #694653;

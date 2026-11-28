@@ -46,7 +46,7 @@ export function StoreHeaderClient({ products, categories, homepage = true, annou
         <div className={styles.headerMain}>
           <div className={styles.headerTools}>
             <Button variant="ghost" size="icon" className={styles.mobileMenu} aria-label="Open menu" onClick={() => setPanel("menu")}><Menu size={21} strokeWidth={1.4} aria-hidden="true" /></Button>
-            <Button variant="ghost" className={styles.searchButton} aria-label="Search dresses" onClick={() => setPanel("search")}><Search size={19} strokeWidth={1.4} aria-hidden="true" /><span>Search</span></Button>
+            <Button variant="ghost" className={styles.searchButton} aria-label="Search dresses" onClick={() => setPanel("search")}><Search size={19} strokeWidth={1.4} aria-hidden="true" /><span>Search dresses...</span></Button>
           </div>
           <Link href="/" aria-label="Florangi home" className={styles.wordmark}>Florangi</Link>
           <div className={styles.headerRight}><Link className={styles.trackLink} href="/track-order">Track order</Link><Link className={styles.bagLink} href="/cart" aria-label="Shopping bag"><ShoppingBag size={21} strokeWidth={1.4} aria-hidden="true" /><span>Bag</span></Link></div>
